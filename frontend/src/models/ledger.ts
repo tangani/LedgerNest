@@ -4,6 +4,7 @@ export type Repayment = { id: string; amount: number; date: string; notes: strin
 export type Debt = {
   id: string; person: string; purpose: string; direction: Direction
   currency: Currency; principal: number; due: string; notes: string
+  version?: number
   repayments: Repayment[]
 }
 export type Business = { id: string; name: string; description: string; currency: Currency; contributed: number; returned: number; transactions?: BusinessTransaction[] }
