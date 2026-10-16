@@ -1,0 +1,10 @@
+.auth-page { min-height: 100dvh; display: grid; place-items: center; padding: 1rem; background: #f3f7f5; }
+.auth-card { width: 100%; max-width: 28rem; background: white; border: 1px solid #dbe6e0; border-radius: 16px; padding: 1.25rem; box-sizing: border-box; }
+.auth-card h1 { font-size: 1.8rem; margin: .5rem 0; }
+.auth-card input { width: 100%; box-sizing: border-box; min-height: 44px; font-size: 1rem; }
+.auth-card .editor-form { gap: 1rem; }
+.auth-switch { width: 100%; margin-top: 1rem; min-height: 44px; }
+.account-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.account-controls button { min-height: 44px; }
+.account-identifier { overflow-wrap: anywhere; }
+@media (min-width: 640px) { .auth-card { padding: 2rem; } }

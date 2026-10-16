@@ -1,3 +1,4 @@
+import type { User } from './services/authApi'
 import { useState } from 'react'
 import './App.css'
 import { Tabs } from './components/Tabs'
@@ -10,29 +11,36 @@ import { RATE_SCALE } from './lib/currency'
 import { BusinessSection } from './features/business/BusinessSection'
 import { FundsEditor } from './features/business/FundsEditor'
 import { RecentActivity } from './features/activity/RecentActivity'
-import { validateTransaction } from './lib/business'
 import { BusinessEditor } from './features/business/BusinessEditor'
 import type { Business, Currency, Debt, Direction, Ledger, BusinessTransaction } from './models/ledger'
 import { loadLedger, saveLedger } from './lib/storage'
+import { useBusinesses } from './hooks/useBusinesses'
 import { useDebts } from './hooks/useDebts'
 import { ApiError } from './services/debtsApi'
-import { balance, today, validateDebt } from './lib/debts'
+import { balance, validateDebt } from './lib/debts'
 import { dateLabel, money } from './lib/formatters'
 const mainTabs = [{ value: 'debts', label: 'Personal debts' }, { value: 'business', label: 'Business' }, { value: 'activity', label: 'Recent activity' }] as const
 type Editor = { kind: 'debt'; debt?: Debt } | { kind: 'repay' | 'details'; debt: Debt } | { kind: 'business'; business?: Business } | { kind: 'funds'; business: Business; transactionKind: BusinessTransaction['kind'] } | { kind: 'businessHistory'; business: Business } | { kind: 'rate' } | null
 
-export default function App() {
-  const [loaded] = useState(() => loadLedger())
+export default function App({ user, onLogout, onAccount }: { user: User; onLogout: () => void; onAccount: () => void }) {
+  const [loaded] = useState(() => loadLedger(user.id))
   const [ledger, setLedger] = useState(loaded.ledger)
   const loadError = loaded.error
   const api = useDebts()
+  const businessApi = useBusinesses()
   const repayments = api.debts.flatMap(debt => debt.repayments.map(payment => ({
     id: payment.id, date: payment.date,
     title: debt.direction === 'receivable' ? 'Repayment received' : 'Repayment made',
     detail: `${debt.person} · Personal debt`, currency: debt.currency, amount: payment.amount,
   })))
-  const paymentIds = new Set(repayments.map(payment => payment.id))
-  const activity = [...repayments, ...ledger.activity.filter(item => !paymentIds.has(item.id))]
+  const businessActivity = businessApi.businesses.flatMap(business => (business.transactions ?? []).map(transaction => ({
+    id: transaction.id, date: transaction.date,
+    title: transaction.kind === 'contribution' ? 'Capital contributed' : 'Capital returned',
+    detail: `${business.name} · Business`, currency: business.currency, amount: transaction.amount,
+  })))
+  const serverActivity = [...repayments, ...businessActivity]
+  const serverIds = new Set(serverActivity.map(item => item.id))
+  const activity = [...serverActivity, ...ledger.activity.filter(item => !serverIds.has(item.id))]
     .sort((a, b) => b.date.localeCompare(a.date))
   const [tab, setTab] = useState<'debts' | 'business' | 'activity'>('debts')
   const [currency, setCurrency] = useState<Currency>('ZAR')
@@ -43,7 +51,7 @@ export default function App() {
     if (loadError) return loadError
     try {
       // Write the complete change first: never announce success if storage fails.
-      saveLedger(next)
+      saveLedger(next, user.id)
       setLedger(next)
       setEditor(null)
       setNotice('Saved in this browser.')
@@ -66,7 +74,7 @@ export default function App() {
   }
   return <div className="app-shell">
     <a className="skip-link" href="#main">Skip to content</a>
-    <header className="app-header"><a className="brand" href="#main"><span className="brand-mark" aria-hidden="true">L</span>LedgerNest</a></header>
+    <header className="app-header"><a className="brand" href="#main"><span className="brand-mark" aria-hidden="true">L</span>LedgerNest</a><div className="account-controls"><span>{user.firstName}</span><button className="secondary" onClick={onAccount}>Account</button><button className="secondary" onClick={onLogout}>Sign out</button></div></header>
     <main id="main">
       <div className="workspace-heading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>A little more clarity.</h1></div><label className="currency-control">Display currency<select value={currency} onChange={(event) => setCurrency(event.target.value as Currency)}><option value="ZAR">ZAR · South African rand</option><option value="USD">USD · US dollar</option></select></label></div>
       {loadError && <p className="storage-error" role="alert">{loadError}</p>}
@@ -84,10 +92,17 @@ export default function App() {
         </details>}
       </section>
       <section role="tabpanel" id="workspace-panel-business" aria-labelledby="workspace-tab-business" hidden={tab !== 'business'} tabIndex={0}>
-        <BusinessSection businesses={ledger.businesses} currency={currency} rate={ledger.exchangeRate} disabled={Boolean(loadError)} onAdd={() => setEditor({ kind: 'business' })} onEdit={(business) => setEditor({ kind: 'business', business })} onFunds={(business) => setEditor({ kind: 'funds', business, transactionKind: 'contribution' })} onReturn={(business) => setEditor({ kind: 'funds', business, transactionKind: 'capital_return' })} onHistory={(business) => setEditor({ kind: 'businessHistory', business })} />
+        <div className="api-toolbar"><p>Business records are saved to the backend.</p><button className="secondary" disabled={businessApi.loading || editor !== null} onClick={() => { void businessApi.refresh() }}>Refresh businesses</button></div>
+        {businessApi.loading && <p role="status" className="empty-state">Loading businesses…</p>}
+        {businessApi.error && <p className="storage-error" role="alert">{businessApi.error} Use Refresh businesses to try again.</p>}
+        {!businessApi.loading && !businessApi.error && <BusinessSection businesses={businessApi.businesses} currency={currency} rate={ledger.exchangeRate} disabled={false} onAdd={() => setEditor({ kind: 'business' })} onEdit={(business) => setEditor({ kind: 'business', business })} onFunds={(business) => setEditor({ kind: 'funds', business, transactionKind: 'contribution' })} onReturn={(business) => setEditor({ kind: 'funds', business, transactionKind: 'capital_return' })} onHistory={(business) => setEditor({ kind: 'businessHistory', business })} />}
+        {ledger.businesses.length > 0 && <details className="local-archive"><summary>Previous browser businesses ({ledger.businesses.length}) · read only</summary>
+          <p>These records remain on this device and have not been imported. They are excluded from backend totals. Check them before recreating records to avoid duplicates.</p>
+          <BusinessSection businesses={ledger.businesses} currency={currency} rate={ledger.exchangeRate} disabled={true} onAdd={() => {}} onEdit={() => {}} onFunds={() => {}} onReturn={() => {}} onHistory={(business) => setEditor({ kind: 'businessHistory', business })} />
+        </details>}
       </section>
-      <section role="tabpanel" id="workspace-panel-activity" aria-labelledby="workspace-tab-activity" hidden={tab !== 'activity'} tabIndex={0}><p className="form-help">Backend repayment history and activity previously saved on this device. Debt creation and edit history are not yet provided by the API.</p>{api.error && <p role="alert">Backend repayment history is unavailable until debts refresh successfully.</p>}<RecentActivity activity={activity} currency={currency} rate={ledger.exchangeRate} /></section>
-      <footer>Personal debts: backend database. Business records, exchange rate, and previous local history: this browser.</footer>
+      <section role="tabpanel" id="workspace-panel-activity" aria-labelledby="workspace-tab-activity" hidden={tab !== 'activity'} tabIndex={0}><p className="form-help">Backend repayments, business contributions and capital returns, plus activity previously saved on this device. Creation and edit history are not yet provided by the APIs.</p>{api.error && <p role="alert">Backend repayment history is unavailable until debts refresh successfully.</p>}{businessApi.error && <p role="alert">Business history may be out of date until businesses refresh successfully.</p>}{(api.loading || businessApi.loading) && <p role="status">Refreshing transaction history…</p>}<RecentActivity activity={activity} currency={currency} rate={ledger.exchangeRate} /></section>
+      <footer>Personal debts and business records: backend database. Exchange rate and previous local records: this browser.</footer>
     </main>
     {editor?.kind === 'debt' && <DebtEditor debt={editor.debt} currency={currency} direction={direction} onSave={saveDebt} onClose={() => setEditor(null)} />}
     {editor?.kind === 'repay' && <RepaymentEditor debt={editor.debt} onClose={() => setEditor(null)} onSave={async (payment) => {
@@ -108,18 +123,26 @@ export default function App() {
       {!editor.debt.repayments.length && <p>No repayments yet.</p>}
       <p className="form-help">Backend debts can be edited using the card’s Edit or Repayment button. Previous browser debts are read only.</p>
     </Modal>}
-    {editor?.kind === 'business' && <BusinessEditor business={editor.business} currency={currency} onClose={() => setEditor(null)} onSave={(business) => {
-      const exists = ledger.businesses.some((item) => item.id === business.id)
-      return commit({ ...ledger, businesses: exists ? ledger.businesses.map((item) => item.id === business.id ? business : item) : [business, ...ledger.businesses], activity: [{ id: crypto.randomUUID(), date: today(), title: exists ? 'Business details updated' : 'Business created', detail: business.name, currency: business.currency, amount: business.contributed }, ...ledger.activity] })
+    {editor?.kind === 'business' && <BusinessEditor business={editor.business} currency={currency} onClose={() => setEditor(null)} onSave={async (business) => {
+      try {
+        await businessApi.save(business, Boolean(editor.business))
+        setEditor(null)
+        setNotice('Business saved to the backend.')
+        return null
+      } catch (problem) {
+        throw new ApiError(businessApi.message(problem), problem instanceof ApiError ? problem.status : 0)
+      }
     }} />}
     {editor?.kind === 'rate' && <RateEditor rate={ledger.exchangeRate} onClose={() => setEditor(null)} onSave={(exchangeRate) => commit({ ...ledger, exchangeRate })} />}
-    {editor?.kind === 'funds' && <FundsEditor business={editor.business} kind={editor.transactionKind} onClose={() => setEditor(null)} onSave={(transaction) => {
-      const business = ledger.businesses.find((item) => item.id === editor.business.id)
-      if (!business) return 'This business is no longer available.'
-      const error = validateTransaction(business, transaction)
-      if (error) return error
-      const updated: Business = { ...business, contributed: business.contributed + (transaction.kind === 'contribution' ? transaction.amount : 0), returned: business.returned + (transaction.kind === 'capital_return' ? transaction.amount : 0), transactions: [...(business.transactions ?? []), transaction] }
-      return commit({ ...ledger, businesses: ledger.businesses.map((item) => item.id === business.id ? updated : item), activity: [{ id: transaction.id, date: transaction.date, title: transaction.kind === 'contribution' ? 'Capital contributed' : 'Capital returned', detail: business.name, currency: business.currency, amount: transaction.amount }, ...ledger.activity] })
+    {editor?.kind === 'funds' && <FundsEditor business={editor.business} kind={editor.transactionKind} onClose={() => setEditor(null)} onSave={async (transaction) => {
+      try {
+        await businessApi.transact(editor.business.id, transaction)
+        setEditor(null)
+        setNotice('Business transaction saved to the backend.')
+        return null
+      } catch (problem) {
+        throw new ApiError(businessApi.message(problem), problem instanceof ApiError ? problem.status : 0)
+      }
     }} />}
     {editor?.kind === 'businessHistory' && <Modal title={`${editor.business.name} history`} onClose={() => setEditor(null)}>
       {(() => {

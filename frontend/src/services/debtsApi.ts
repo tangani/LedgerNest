@@ -1,8 +1,8 @@
 import type { Debt, Repayment } from '../models/ledger'
 
-export class ApiError extends Error {
-  constructor(message: string, public readonly status: number) { super(message) }
-}
+import { ApiError, request as httpRequest } from './http'
+export { ApiError } from './http'
+const request = (path: string, method = 'GET', body?: unknown, signal?: AbortSignal) => httpRequest(`/api/v1/debts${path}`, method, body, signal)
 
 const object = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -39,40 +39,6 @@ export function decodeDebt(value: unknown): Debt {
   }
 }
 
-async function request(path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<unknown> {
-  const controller = new AbortController()
-  const cancel = () => controller.abort()
-  if (signal?.aborted) controller.abort()
-  signal?.addEventListener('abort', cancel, { once: true })
-  const timer = setTimeout(cancel, 15000)
-  try {
-    const response = await fetch(`/api/v1/debts${path}`, {
-      method, signal: controller.signal, cache: 'no-store',
-      headers: body === undefined ? { Accept: 'application/json' } : { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    })
-    const data: unknown = await response.json().catch(() => null)
-    if (!response.ok) {
-      let message = `Request failed (${response.status}).`
-      if (object(data)) {
-        const embedded = data._embedded
-        const errors = object(embedded) && Array.isArray(embedded.errors) ? embedded.errors : []
-        const detail = errors.find((item: unknown) => object(item) && typeof item.message === 'string')
-        if (object(detail)) message = String(detail.message)
-        else if (typeof data.message === 'string') message = data.message
-      }
-      if (response.status >= 500) message = 'The backend could not complete the request. Check its terminal logs.'
-      throw new ApiError(message, response.status)
-    }
-    return data
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    throw new ApiError('Could not reach the backend, or the request timed out.', 0)
-  } finally {
-    clearTimeout(timer)
-    signal?.removeEventListener('abort', cancel)
-  }
-}
 
 function input(debt: Debt, update: boolean) {
   return {

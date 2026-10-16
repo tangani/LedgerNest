@@ -1,6 +1,6 @@
 import type { Ledger } from '../models/ledger'
 import { MAX_CENTS, validDate } from './debts'
-const key = 'ledgernest.v1.personal'
+const key = (userId: string) => `ledgernest.v2.account:${userId}`
 export function initialLedger(): Ledger { return { version: 1, debts: [], businesses: [], activity: [] } }
 const object = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
 const text = (value: unknown): value is string => typeof value === 'string'
@@ -31,9 +31,9 @@ export function validLedger(value: unknown): value is Ledger {
     return contributions <= b.contributed && returns <= b.returned
   }) && value.activity.every((a: unknown) => object(a) && text(a.id) && text(a.title) && text(a.detail) && text(a.date) && validDate(a.date) && currency(a.currency) && amount(a.amount))
 }
-export function loadLedger(): { ledger: Ledger; error: string } {
+export function loadLedger(userId: string): { ledger: Ledger; error: string } {
   try {
-    const raw = localStorage.getItem(key)
+    const raw = localStorage.getItem(key(userId))
     if (raw === null) return { ledger: initialLedger(), error: '' }
     const parsed: unknown = JSON.parse(raw)
     if (!validLedger(parsed)) throw new Error('Invalid stored data')
@@ -42,6 +42,6 @@ export function loadLedger(): { ledger: Ledger; error: string } {
     return { ledger: initialLedger(), error: 'Stored data could not be loaded. Editing is disabled to protect it. Restore browser storage before continuing.' }
   }
 }
-export function saveLedger(ledger: Ledger) {
-  localStorage.setItem(key, JSON.stringify(ledger))
+export function saveLedger(ledger: Ledger, userId: string) {
+  localStorage.setItem(key(userId), JSON.stringify(ledger))
 }

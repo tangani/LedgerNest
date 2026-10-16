@@ -7,7 +7,7 @@ export type Debt = {
   version?: number
   repayments: Repayment[]
 }
-export type Business = { id: string; name: string; description: string; currency: Currency; contributed: number; returned: number; transactions?: BusinessTransaction[] }
+export type Business = { version?: number; id: string; name: string; description: string; currency: Currency; contributed: number; returned: number; transactions?: BusinessTransaction[] }
 export type Activity = { id: string; date: string; title: string; detail: string; currency: Currency; amount: number }
 export type ExchangeRate = { zarPerUsdMicros: number; updatedAt: string }
 export type BusinessTransaction = { id: string; kind: 'contribution' | 'capital_return'; amount: number; date: string; notes: string }
