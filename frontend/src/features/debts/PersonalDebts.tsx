@@ -5,8 +5,8 @@ import type { Currency, Debt, Direction, ExchangeRate } from '../../models/ledge
 import { balance, repaid } from '../../lib/debts'
 import { money, dateLabel } from '../../lib/formatters'
 const options = [{ value: 'receivable', label: 'Owed to me' }, { value: 'payable', label: 'I owe' }] as const
-export function PersonalDebts({ debts, currency, direction, onDirection, onAdd, onEdit, onRepay, onDetails, disabled, rate }: {
-  debts: Debt[]; currency: Currency; direction: Direction; onDirection: (value: Direction) => void
+export function PersonalDebts({ debts, currency, direction, onDirection, onAdd, onEdit, onRepay, onDetails, disabled, rate, id = 'debt' }: {
+  id?: string; debts: Debt[]; currency: Currency; direction: Direction; onDirection: (value: Direction) => void
   onAdd: () => void; onEdit: (debt: Debt) => void; onRepay: (debt: Debt) => void; onDetails: (debt: Debt) => void; disabled: boolean; rate?: ExchangeRate
 }) {
   const visible = debts.filter((debt) => debt.direction === direction)
@@ -14,8 +14,8 @@ export function PersonalDebts({ debts, currency, direction, onDirection, onAdd, 
   const active = visible.filter((debt) => balance(debt) > 0).length
   return <>
     <div className="section-toolbar"><div><h2>Personal debts</h2><p className="form-help">Lending, borrowing, and repayments.</p></div><button className="primary" onClick={onAdd} disabled={disabled}>+ Add debt</button></div>
-    <Tabs id="debt" label="Debt direction" options={options} value={direction} onChange={onDirection} />
-    {options.map((option) => <section key={option.value} role="tabpanel" id={`debt-panel-${option.value}`} aria-labelledby={`debt-tab-${option.value}`} hidden={direction !== option.value} tabIndex={0}>
+    <Tabs id={id} label="Debt direction" options={options} value={direction} onChange={onDirection} />
+    {options.map((option) => <section key={option.value} role="tabpanel" id={`${id}-panel-${option.value}`} aria-labelledby={`${id}-tab-${option.value}`} hidden={direction !== option.value} tabIndex={0}>
       {direction === option.value && <>
         <div className={`summary-card ${direction}`}><p>{direction === 'receivable' ? 'Total owed to me' : 'Total I owe'}</p><strong className="summary-value">{total === null ? 'Exchange rate needed' : money(total, currency)}</strong><span>{visible.some((debt) => debt.currency !== currency) ? 'Estimated total · ' : ''}{active} outstanding · {visible.length - active} settled</span></div>
         <div className="record-grid">{visible.map((debt) => <article className="record-card" key={debt.id}>
