@@ -99,11 +99,6 @@ tasks.withType<io.micronaut.gradle.testresources.StartTestResourcesService>().co
       useClassDataSharing.set(false)
 }
 
-tasks.named<io.micronaut.gradle.docker.MicronautDockerfile>("dockerfile") {
-
-    baseImage = "eclipse-temurin:25-jre"
-}
-
 tasks.withType<AbstractTestTask>().configureEach {
     failOnNoDiscoveredTests = false
 }
