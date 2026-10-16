@@ -1,213 +1,185 @@
 # 🪺 LedgerNest Frontend
 
-LedgerNest is a personal debt and business investment tracker designed to help users understand who they owe, who owes them, and how much money they have contributed to businesses or side projects.
+LedgerNest helps users track **money they owe, money owed to them, and capital contributed to businesses or side projects**.
 
-This directory contains the React and TypeScript web application. It belongs to the LedgerNest monorepo alongside the Kotlin/Micronaut backend and a placeholder for future mobile applications.
+This directory contains the mobile-first React and TypeScript web application. It belongs to the LedgerNest monorepo alongside the Kotlin/Micronaut backend.
 
-Development follows a frontend-first approach: build and refine the interface with sample data, then connect each workflow to the backend.
+> **Status — 16 October 2026:** Personal debts are connected to the backend and confirmed working locally. Business API integration is implemented, including contributions, capital returns and history; its full live workflow still needs verification. Authentication and public deployment are outstanding.
 
 ---
 
 ## Vision
 
-LedgerNest aims to make personal lending, borrowing and business contributions easier to record and understand.
+Make personal lending, borrowing and business contributions easy to record and understand, while preserving their different financial meanings.
 
-The web application will help users:
+The interface groups information into three tabs to keep each workflow focused:
 
-* Track money borrowed and money lent separately
-* Record partial and full repayments
-* Review outstanding balances and payment history
-* See upcoming due dates
-* Track capital contributions, business loans and money received back
-* Review each business or side project independently
-
-Debts and investments will share one interface while retaining their different financial meanings.
+* **Personal debts:** Owed to me and I owe
+* **Business:** Contributions, capital returns and remaining invested capital
+* **Recent activity:** Repayments and business transactions, alongside previous local activity
 
 ---
 
 ## Current Features
 
-### Frontend Foundation
+### Personal Debts
 
-The React + TypeScript + Vite project has been generated with:
+* Add and edit debts in either direction
+* Record a person's name, purpose, original amount, currency, optional due date and notes
+* Record partial and full repayments
+* Display outstanding balances, settled debts and repayment history
+* Load and save records through backend APIs
+* Include the current version when editing to detect conflicting changes
 
-* React application entry point and starter screen
-* TypeScript configuration
-* Vite development and build scripts
-* ESLint configuration
-* CSS files for application styling
+There is no separate contact directory, borrowing/lending date field, interest calculation or overdue reporting workflow yet.
 
-Business screens, authentication, financial calculations and backend integration are not yet implemented. Successful local build and lint checks remain to be confirmed.
+### Business Capital
+
+* Create businesses and edit their details
+* Record capital contributions and returned capital
+* Display contributed, returned and remaining invested amounts
+* View dated transaction history
+* Load and save records through backend APIs
+* Lock business currency after the first transaction
+
+New businesses start with zero capital. Add funds through the contribution form. Capital returns cannot exceed the amount still invested.
+
+Business loans, distributions, sales, expenses, inventory and profit reporting are not implemented. Remaining invested capital is not current business value or profit. Recording funds does not transfer money.
+
+### Shared Interface
+
+* Mobile-first layouts, compact cards and modal editors
+* Loading, empty, validation-error and network-error states
+* Manual refresh controls for debts and businesses
+* Duplicate-submit prevention and transaction retry handling
+* ZAR and USD support
+* Manual exchange-rate entry and display-currency conversion
+* Read-only access to previous browser-stored debts and businesses
+
+### Recent Activity
+
+Recent activity combines backend repayments, business contributions and capital returns with previously stored local activity. Creation and edit events are not supplied by the current APIs, so this is not a complete backend audit trail.
 
 ---
 
 ## Planned Features
 
-### Debt Management
+* Authentication, account access and protected routes
+* Authenticated ownership and account-aware local settings
+* Explicit import of previous browser records
+* Transaction correction/reversal workflows
+* Contact management, due-date reporting and history filters
+* Export and monthly summaries
+* Business loans and distributions as distinct workflows
+* Automatic exchange-rate retrieval and historical conversion policies
+* Reminders, receipt attachments and offline access
+* Packaged mobile delivery
 
-* Separate **Owed to me** and **I owe** views
-* Contact name, original amount, currency, date and optional due date
-* Partial and full repayment recording
-* Outstanding balance calculation
-* Debt details and repayment history
-* Clear settled and overdue indicators
-
-### Business Investment Tracking
-
-* Businesses and side projects
-* Capital contributions
-* Business loans and repayments
-* Capital returned
-* Distributions received
-* Per-business transaction history
-
-Daily business sales, expenses, inventory and full profit reporting are outside the initial scope.
-
-### Overview & Reporting
-
-* Separate totals for amounts owed and receivable
-* Contributions and receipts by business
-* Currency-specific summaries
-* Upcoming payments and recent activity
-* History filters and future data exports
-
-### Authentication & Account Management
-
-* Signup and login screens
-* Authenticated sessions
-* Protected application routes
-* Profile and currency preferences
-
-Backend authentication and ownership validation will be required before using real financial data.
-
-### Future Expansion
-
-* Receipt attachments
-* Reminders
-* Mobile access through applications in the separate `mobile/` directory
-
-These are future possibilities rather than requirements for the first release.
+A mobile-first web interface is implemented; an Android package or Google Play release is not.
 
 ---
 
 ## Technology Stack
 
-### Frontend
-
 | Technology | Declared version range | Purpose |
 | --- | --- | --- |
 | React / React DOM | `^19.2.8` | User interface |
 | TypeScript | `~6.0.2` | Static typing |
-| Vite | `^8.3.0` | Development server and production build |
+| Vite | `^8.3.0` | Development server and production assets |
 | Vite React plugin | `^6.1.1` | React integration |
 | ESLint | `^10.10.0` | Linting |
-| CSS | — | Styling |
+| CSS | — | Responsive styling |
+| Browser Fetch API | — | HTTP requests |
 
-These ranges reflect the initial `package.json`. Use `package.json` and `package-lock.json` as the authoritative dependency definitions. Commit the lockfile for reproducible installs.
+These ranges reflect the supplied `package.json`. The repository's `package.json` and `package-lock.json` remain authoritative.
 
-Routing, UI component libraries and data-fetching libraries have not yet been selected.
+The application uses React state and custom hooks for data loading, native dialog elements for editors, and tab navigation. It does not currently require a routing or data-fetching library.
 
-### Backend
-
-* Kotlin and Micronaut 5.2.2
-* Java 25
-* Micronaut Data JDBC
-* PostgreSQL and Flyway integration planned
-
-The generated backend compiles successfully. Database configuration and frontend API integration remain pending.
-
-### Future Infrastructure
-
-* Frontend and backend hosting
-* Environment configuration
-* CI build and lint checks
-* Monitoring and error reporting
+The backend uses Kotlin/Micronaut, Java 25, PostgreSQL, Flyway, and JDBC with Micronaut-managed transactions. Debt and business records are persisted in PostgreSQL.
 
 ---
 
 ## Project Structure
 
-The initial Vite template uses the following layout:
-
 | Path | Purpose |
 | --- | --- |
 | `src/main.tsx` | Application entry point |
-| `src/App.tsx` | Root component and current starter screen |
-| `src/App.css` | Application styles |
-| `src/index.css` | Global styles |
-| `src/assets/` | Imported static assets |
-| `public/` | Public static files |
-| `index.html` | HTML entry document |
-| `vite.config.ts` | Vite configuration |
+| `src/App.tsx` | Workspace tabs, editors and integration between features |
+| `src/App.css`, `src/index.css` | Application and global styles |
+| `src/components/` | Shared tabs, modal, exchange-rate editor and converted amounts |
+| `src/features/debts/` | Debt cards, metadata editor and repayment editor |
+| `src/features/business/` | Business cards, metadata editor and funds editor |
+| `src/features/activity/` | Recent activity display |
+| `src/hooks/useDebts.ts` | Debt loading, refresh and mutation state |
+| `src/hooks/useBusinesses.ts` | Business loading, refresh and mutation state |
+| `src/services/http.ts` | Shared HTTP transport, timeout and error handling |
+| `src/services/debtsApi.ts` | Debt requests and response normalization |
+| `src/services/businessesApi.ts` | Business requests and response normalization |
+| `src/models/ledger.ts` | Shared TypeScript domain types |
+| `src/lib/` | Money, date, validation, conversion and storage helpers |
+| `src/assets/`, `public/` | Static assets |
+| `vite.config.ts` | React plugin and local API proxy |
 | `tsconfig*.json` | TypeScript configuration |
 | `eslint.config.js` | Lint configuration |
-| `package.json` | Dependencies and scripts |
-| `package-lock.json` | Resolved dependency versions after installation |
+| `package.json`, `package-lock.json` | Scripts, dependencies and resolved versions |
 
-As features are implemented, introduce these folders where needed:
-
-| Proposed path | Purpose |
-| --- | --- |
-| `src/components/` | Reusable interface components |
-| `src/pages/` | Page-level components |
-| `src/features/debts/` | Debt forms, lists and repayment workflows |
-| `src/features/businesses/` | Business contribution and receipt workflows |
-| `src/services/` | API access and sample-data adapters |
-| `src/types/` | Shared TypeScript types |
-| `src/utils/` | Currency formatting and validation helpers |
-
-These proposed folders are not implemented yet.
+Keep API calls in services, loading/mutation state in hooks, and feature-specific forms and displays in their feature folders.
 
 ---
 
-## Pages
+## Money and Currency
 
-All pages below are planned.
+Amounts are stored and sent as **integer cents**, not decimal strings. An input of `1000.00` becomes `100000` in the API request.
 
-| Page | Description |
-| --- | --- |
-| Overview | Summary of debts and business contributions, separated by currency |
-| Debts | Owed-to-me and I-owe views |
-| Debt details | Original amount, outstanding balance and repayment history |
-| Businesses | List of businesses and side projects |
-| Business details | Contributions, receipts and linked loans |
-| Login | Existing user authentication |
-| Signup | Account registration |
-| Settings | Profile and application preferences |
+```text
+Outstanding debt = Principal − Repayments
+Capital still invested = Contributions − Capital returns
+```
 
-The public landing page's location is still to be decided; it is not assumed to be part of this application.
+* Each debt or business retains its original currency, ZAR or USD.
+* Repayments and business transactions use their parent record's currency.
+* Changing the display currency only changes display calculations.
+* A manually entered ZAR-per-USD rate supports estimated combined totals.
+* When conversion is necessary but no rate is set, the interface asks for a rate.
+* Debt currency and direction are locked after a repayment; business currency is locked after a transaction.
+* Frontend validation improves feedback; the backend independently enforces the financial rules.
 
 ---
 
-## User Journey
+## API Integration
 
-### 1. Add a Debt
+Requests use relative `/api/v1/...` paths. Vite proxies `/api` to `http://127.0.0.1:8080` during development.
 
-Choose whether money was borrowed or lent, then enter the contact, amount, currency and relevant dates.
+| Method | Endpoint | Frontend workflow |
+| --- | --- | --- |
+| GET / POST | `/api/v1/debts` | Load / add debts |
+| PUT | `/api/v1/debts/{id}` | Edit debt details with the current version |
+| POST | `/api/v1/debts/{id}/repayments` | Record repayments |
+| GET / POST | `/api/v1/businesses` | Load / add businesses |
+| PUT | `/api/v1/businesses/{id}` | Edit business details with the current version |
+| POST | `/api/v1/businesses/{id}/transactions` | Record contributions or capital returns |
 
-### 2. Record a Repayment
+The backend also provides GET-by-ID endpoints. Current list responses include transaction history. The frontend follows limit/offset pages and normalizes omitted empty fields, such as transaction arrays.
 
-Record a dated payment against that debt, including partial repayments.
+### Saves, Conflicts and Retries
 
-### 3. Review the Balance
+* Forms wait for successful backend responses before updating balances or announcing success.
+* Buttons prevent duplicate submission while a write is in progress.
+* Metadata updates send the version captured when the form opened. A conflict asks the user to close, refresh and reopen the editor.
+* Retrying a repayment or business transaction within the same dialog reuses its UUID and payload.
+* Pending transaction IDs are not retained across browser reloads. After an uncertain result followed by closing or reloading, check history before recording another transaction.
+* Debt and business creation do not yet have backend idempotency keys. After an uncertain create response, the form blocks another submission and asks the user to refresh the list first.
+* Writes are not automatically retried.
 
-See the remaining amount and the history supporting it.
+---
 
-The first workflow will demonstrate **R1,000 lent − R250 repaid = R750 outstanding**.
+## Data Persistence
 
-### 4. Track Business Contributions
+New debts, repayments, businesses and business transactions are saved in PostgreSQL through the backend.
 
-Create a business and distinguish capital contributions from repayable loans.
+Earlier browser records remain under `ledgernest.v1.personal` and appear in expandable read-only sections. They are not automatically imported or included in backend totals. Review them before recreating records to avoid duplication.
 
-### 5. Record Money Received
-
-Record loan repayments, capital returns and distributions under the correct category.
-
-### 6. Review the Overview
-
-View debts and business activity together without treating every investment as money owed back.
-
-The initial prototype will use sample data in local state. Refreshing the page will reset that state until persistence is implemented.
+Exchange-rate settings and previous local activity still use browser storage. Clearing site data removes those local settings and records, but does not delete backend data. Continue using the same browser origin to access the existing local archive.
 
 ---
 
@@ -215,57 +187,66 @@ The initial prototype will use sample data in local state. Refreshing the page w
 
 ### Prerequisites
 
-* Node.js `22.13.0` or later within the Node 22 release line
-* npm
+* Node.js and npm compatible with the versions resolved in this project's lockfile
 * Git
+* The LedgerNest backend and its local PostgreSQL database
 
-The current developer environment uses Node.js `22.17.1` and npm `10.9.2`.
+Node.js `22.17.1` and npm `10.9.2` were reported during initial setup; they are not a declared minimum compatibility guarantee for future dependency updates. Check dependency engine requirements when updating packages.
 
 ### Installation
 
-For an existing checkout:
-
 ```bash
 cd ~/Documents/projects/LedgerNest/frontend
-npm install
+npm ci
 ```
+
+Use `npm install` if no lockfile exists yet, then commit the generated lockfile.
 
 For a new checkout:
 
 ```bash
 git clone https://github.com/tangani/LedgerNest.git
 cd LedgerNest/frontend
-npm install
+npm ci
 ```
 
-After a lockfile is committed, use `npm ci` for clean, reproducible installs in CI.
+### Start the Backend
 
-### Local Development
+In a separate terminal:
+
+```bash
+cd ~/Documents/projects/LedgerNest/backend
+MICRONAUT_ENVIRONMENTS=ledgerlocal ./gradlew run
+```
+
+The local database must be running. Its configuration is in `backend/src/main/resources/application-ledgerlocal.properties`.
+
+### Start the Frontend
 
 ```bash
 npm run dev
 ```
 
-Open the URL printed by Vite, normally `http://localhost:5173`. Vite may choose another port if that one is occupied.
+Open `http://localhost:5173`. The supplied Vite configuration uses `strictPort: true`: it reports an occupied port rather than switching to another browser-storage origin. Stop an older Vite process if necessary. Restart Vite after changing its configuration.
 
-The starter application does not require the backend to be running.
+The application shell can render without the backend, but API-backed debt and business workflows require it. Backend failures appear as errors with refresh controls.
 
-### Build & Lint
+### Build and Lint
 
 ```bash
 npm run build
 npm run lint
 ```
 
-The build runs TypeScript checks and creates production assets in `dist/`.
+The build runs TypeScript checks and generates assets in `dist/`.
 
-### Preview the Build
+### Preview
 
 ```bash
 npm run preview
 ```
 
-Open the URL printed in the terminal. Preview is for checking the production build locally; it is not a production hosting setup.
+Use the URL printed in the terminal. Preview serves the built assets locally; it is not production hosting. Verify API forwarding in that mode. Deployed assets require hosting that routes `/api` to the backend; the development proxy is not embedded into the build.
 
 ---
 
@@ -273,92 +254,102 @@ Open the URL printed in the terminal. Preview is for checking the production bui
 
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Start the Vite development server |
-| `npm run build` | Run TypeScript build checks and generate production assets |
+| `npm run dev` | Start the development server |
+| `npm run build` | Run TypeScript build checks and create production assets |
 | `npm run lint` | Run ESLint |
-| `npm run preview` | Preview the built application locally |
+| `npm run preview` | Preview production assets locally |
 
-There is no `start` or automated test script in the initial template.
+The supplied package does not yet define a `start` or automated `test` script.
+
+---
+
+## Verification
+
+### Personal Debts
+
+1. Add a ZAR debt of R1,000 under Owed to me.
+2. Record a R250 repayment.
+3. Confirm R750 outstanding and the repayment in Details.
+4. Refresh the browser and confirm persistence.
+5. Edit the purpose and verify the change after another refresh.
+
+### Business
+
+1. Create a ZAR business; it should start with zero capital.
+2. Add R1,000 through Add funds.
+3. Record a R250 capital return.
+4. Confirm R1,000 contributed, R250 returned and R750 still invested.
+5. Check History and Recent activity.
+6. Refresh the browser and restart the backend; verify the same balances remain.
+
+### Errors and Conflicts
+
+* Stop the backend and use a refresh control. Confirm an error appears, then restart and retry.
+* Attempt a repayment or capital return above the available balance. It must not be accepted.
+* Open a record in two tabs, save an edit in one, then submit the older edit in the other. Expect a conflict rather than an overwrite.
+* Confirm previous browser records remain available read-only.
+
+Strict TypeScript checking and simulated API/DOM checks passed during integration work, including retry behavior, duplicate-submit guards, version conflicts and preservation of local records. That environment used TypeScript 7 and React 19.3, not this project's exact lockfile. Run the local build/lint commands and live checks above. Visual mobile and accessibility verification remain outstanding.
 
 ---
 
 ## Development Roadmap
 
-### Phase 1 — Foundations 🚧
+### Implemented
 
-* [x] Generate React + TypeScript + Vite project
-* [x] Add initial build and lint scripts through the template
-* [ ] Verify local development server
-* [ ] Confirm production build and lint checks pass
-* [ ] Replace template branding with LedgerNest
-* [ ] Create responsive application navigation and layout
+* [x] React + TypeScript + Vite foundation
+* [x] LedgerNest branding, tabs and mobile-first layout
+* [x] Personal-debt forms, cards and repayment history
+* [x] Business forms, cards and transaction history
+* [x] Integer-cent calculations and manual currency conversion
+* [x] Debt and Business API integration
+* [x] Loading, error, empty and refresh states
+* [x] Version-aware edits and transaction retry handling
+* [x] Read-only preservation of previous local records
 
-### Phase 2 — Debt Interface
+### Next
 
-* [ ] Add sample debts
-* [ ] Build Owed-to-me and I-owe tabs
-* [ ] Build add-debt form
-* [ ] Build repayment form and history
-* [ ] Validate amounts and currencies
-* [ ] Add empty, validation-error and settled states
-* [ ] Check keyboard access and mobile layouts
-
-### Phase 3 — Business Interface
-
-* [ ] Create business list and detail screens
-* [ ] Record sample contributions and receipts
-* [ ] Distinguish capital, distributions and loans
-* [ ] Build per-business summaries
-
-### Phase 4 — Backend Integration
-
-* [ ] Agree API request and response types
-* [ ] Implement authentication and protected routes
-* [ ] Connect debt and repayment APIs
-* [ ] Connect business APIs
-* [ ] Handle loading, network failures and expired sessions
-* [ ] Verify records persist after refresh
-* [ ] Verify backend enforcement of record ownership
-
-### Phase 5 — Reporting & Release
-
-* [ ] Build currency-specific overview totals
-* [ ] Add history filters and due-date summaries
-* [ ] Test financial calculations and critical user journeys
-* [ ] Configure CI and hosting
-* [ ] Verify accessibility and responsive behaviour
+* [ ] Verify the complete Business workflow against the running backend
+* [ ] Run local build and lint checks on the latest source
+* [ ] Add authentication and protected routes
+* [ ] Replace fixed local ownership with authenticated user identity
+* [ ] Make local settings and retained browser records account-aware
+* [ ] Add an explicit import flow for old local records
+* [ ] Add transaction correction/reversal workflows
+* [ ] Add automated tests to the repository and CI
+* [ ] Verify mobile layouts, keyboard interaction and accessibility
+* [ ] Add filters, exports and richer due-date reporting
+* [ ] Configure production hosting and release testing
 
 ---
 
-## Project Status
+## Security and Project Status
 
-🚧 **Early development — frontend scaffold generated.**
+The backend currently uses a fixed owner in the `ledgerlocal` environment. Authentication and multi-user isolation are not complete. Keep this development setup local until authenticated ownership and deployment controls are in place.
 
-LedgerNest is not yet a functional financial tracker. The next milestone is the first debt interaction using synthetic data. Authentication, persistence and backend integration will follow.
+Never place secrets in browser-delivered configuration, including Vite `VITE_` variables. Do not commit credentials or real personal financial records in fixtures.
 
-For the overall project vision and roadmap, see the [root README](../README.md).
+LedgerNest now has implemented debt and business workflows, but it is not ready for public release. For the overall project roadmap, see the [root README](../README.md).
 
 ---
 
 ## Contributing
 
-Development currently focuses on small, component-specific changes. The frontend is developed in WebStorm and the backend in IntelliJ IDEA, within one shared Git repository.
+The frontend is developed in WebStorm and the backend in IntelliJ IDEA within one shared Git repository. Root project documentation is maintained separately in VS Code.
 
-Before committing frontend changes, run build and lint checks and inspect the staged files:
+Before committing frontend changes:
 
 ```bash
 cd ~/Documents/projects/LedgerNest/frontend
 npm run build
 npm run lint
-git add .
+git add src README.md
 git diff --cached --name-only
 ```
 
-Running `git add .` here stages this directory's changes. A commit still includes any changes already staged elsewhere, so review the complete staged list.
+Stage any intentional configuration or dependency changes separately. A commit includes all already-staged changes, including changes outside the frontend, so inspect the complete staged list.
 
-Keep `.idea/`, `node_modules/`, `dist/` and local environment files out of Git. Never include credentials or real personal financial data in fixtures. Browser-delivered configuration, including Vite `VITE_` variables, must not contain secrets.
-
-Preserve decimal amounts accurately, keep currencies separate, and confirm financial rules on the backend when API integration is added.
+Keep `.idea/`, `node_modules/`, `dist/` and local environment files out of Git. Preserve integer-cent calculations, original currencies and transaction identities when changing financial workflows.
 
 ---
 
