@@ -1,0 +1,19 @@
+name: ledgernest-local
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ledgernest
+      POSTGRES_USER: ledgernest
+      POSTGRES_PASSWORD: ledgernest_local_only
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - ledgernest_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledgernest -d ledgernest"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  ledgernest_pgdata:
