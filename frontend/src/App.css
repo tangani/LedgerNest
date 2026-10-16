@@ -61,3 +61,13 @@ footer { font-size: 11px; line-height: 1.8; color: #5d7154; margin-top: 32px; pa
   .record-card { padding: 18px; }
   .section-heading { margin-top: 30px; }
 }
+
+/* Keep asynchronous forms and status controls comfortable on small screens. */
+.editor-fields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 1rem; }
+.editor-fields:disabled { opacity: .7; }
+.api-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin: 1rem 0; }
+.api-toolbar p { margin: 0; }
+.api-toolbar button { min-height: 44px; }
+.local-archive { margin-top: 1.5rem; padding: 1rem; border: 1px solid #d8e2df; border-radius: 12px; }
+.local-archive summary { cursor: pointer; min-height: 44px; font-weight: 600; }
+.local-archive > p { line-height: 1.5; }
