@@ -33,6 +33,8 @@ dependencies {
     implementation("jakarta.validation:jakarta.validation-api")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlinVersion}")
+    implementation("io.micronaut.security:micronaut-security-jwt")
+    implementation("com.googlecode.libphonenumber:libphonenumber:9.0.17")
     compileOnly("io.micronaut:micronaut-http-client")
     runtimeOnly("ch.qos.logback:logback-classic")
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
@@ -72,14 +74,17 @@ micronaut {
     testRuntime("junit5")
     processing {
         incremental(true)
-        annotations("com.ledgernest.*")
+        annotations("com.ledgernest.*", "ledgernest.*")
     }
     testResources {
         version = "4.0.0"
+        enabled.set(
+            providers.gradleProperty("useTestResources")
+                .map { it.toBoolean() }
+                .orElse(true)
+        )
     }
     aot {
-        // Please review carefully the optimizations enabled below
-        // Check https://micronaut-projects.github.io/micronaut-aot/latest/guide/ for more details
         convertYamlToJava = false
         precomputeOperations = false
         cacheEnvironment = false
@@ -99,13 +104,6 @@ tasks.named<io.micronaut.gradle.docker.MicronautDockerfile>("dockerfile") {
     baseImage = "eclipse-temurin:25-jre"
 }
 
-
-
-
-
-
-
-// https://docs.gradle.org/current/userguide/upgrading_major_version_9.html#test_task_fails_when_no_tests_are_discovered
 tasks.withType<AbstractTestTask>().configureEach {
     failOnNoDiscoveredTests = false
 }
