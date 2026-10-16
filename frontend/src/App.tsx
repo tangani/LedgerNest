@@ -14,6 +14,8 @@ import { validateTransaction } from './lib/business'
 import { BusinessEditor } from './features/business/BusinessEditor'
 import type { Business, Currency, Debt, Direction, Ledger, BusinessTransaction } from './models/ledger'
 import { loadLedger, saveLedger } from './lib/storage'
+import { useDebts } from './hooks/useDebts'
+import { ApiError } from './services/debtsApi'
 import { balance, today, validateDebt } from './lib/debts'
 import { dateLabel, money } from './lib/formatters'
 const mainTabs = [{ value: 'debts', label: 'Personal debts' }, { value: 'business', label: 'Business' }, { value: 'activity', label: 'Recent activity' }] as const
@@ -23,6 +25,15 @@ export default function App() {
   const [loaded] = useState(() => loadLedger())
   const [ledger, setLedger] = useState(loaded.ledger)
   const loadError = loaded.error
+  const api = useDebts()
+  const repayments = api.debts.flatMap(debt => debt.repayments.map(payment => ({
+    id: payment.id, date: payment.date,
+    title: debt.direction === 'receivable' ? 'Repayment received' : 'Repayment made',
+    detail: `${debt.person} · Personal debt`, currency: debt.currency, amount: payment.amount,
+  })))
+  const paymentIds = new Set(repayments.map(payment => payment.id))
+  const activity = [...repayments, ...ledger.activity.filter(item => !paymentIds.has(item.id))]
+    .sort((a, b) => b.date.localeCompare(a.date))
   const [tab, setTab] = useState<'debts' | 'business' | 'activity'>('debts')
   const [currency, setCurrency] = useState<Currency>('ZAR')
   const [direction, setDirection] = useState<Direction>('receivable')
@@ -39,16 +50,19 @@ export default function App() {
       return null
     } catch { return 'Could not save to browser storage. Your changes have not been applied. Free storage or enable site storage and try again.' }
   }
-  function saveDebt(debt: Debt) {
-    const original = ledger.debts.find((item) => item.id === debt.id)
+  async function saveDebt(debt: Debt) {
+    const original = editor?.kind === 'debt' ? editor.debt : undefined
     const error = validateDebt(debt, original)
     if (error) return error
-    const problem = commit({ ...ledger,
-      debts: original ? ledger.debts.map((item) => item.id === debt.id ? debt : item) : [debt, ...ledger.debts],
-      activity: [{ id: crypto.randomUUID(), date: today(), title: original ? 'Debt details updated' : 'Debt added', detail: `${debt.person} · ${debt.direction === 'receivable' ? 'Owed to me' : 'I owe'}`, currency: debt.currency, amount: debt.principal }, ...ledger.activity],
-    })
-    if (!problem) setDirection(debt.direction)
-    return problem
+    try {
+      await api.save(debt, Boolean(original))
+      setEditor(null)
+      setDirection(debt.direction)
+      setNotice('Debt saved to the backend.')
+      return null
+    } catch (problem) {
+      throw new ApiError(api.message(problem), problem instanceof ApiError ? problem.status : 0)
+    }
   }
   return <div className="app-shell">
     <a className="skip-link" href="#main">Skip to content</a>
@@ -60,19 +74,31 @@ export default function App() {
       <Tabs id="workspace" label="Workspace sections" options={mainTabs} value={tab} onChange={setTab} />
       <div className="rate-bar"><p>{ledger.exchangeRate ? `Manual rate: 1 USD = ${ledger.exchangeRate.zarPerUsdMicros / RATE_SCALE} ZAR · Saved ${new Date(ledger.exchangeRate.updatedAt).toLocaleDateString()}` : 'Set an exchange rate to combine ZAR and USD totals.'}<span className="conversion-note">Display totals in {currency}. Original amounts are preserved.</span></p><button className="secondary" disabled={Boolean(loadError)} onClick={() => setEditor({ kind: 'rate' })}>{ledger.exchangeRate ? 'Edit rate' : 'Set rate'}</button></div>
       <section role="tabpanel" id="workspace-panel-debts" aria-labelledby="workspace-tab-debts" hidden={tab !== 'debts'} tabIndex={0}>
-        <PersonalDebts rate={ledger.exchangeRate} debts={ledger.debts} currency={currency} direction={direction} onDirection={setDirection} onAdd={() => setEditor({ kind: 'debt' })} onEdit={(debt) => setEditor({ kind: 'debt', debt })} onRepay={(debt) => setEditor({ kind: 'repay', debt })} onDetails={(debt) => setEditor({ kind: 'details', debt })} disabled={Boolean(loadError)} />
+        <div className="api-toolbar"><p>Personal debts are saved to the backend.</p><button className="secondary" disabled={api.loading || editor !== null} onClick={() => { void api.refresh() }}>Refresh debts</button></div>
+        {api.loading && <p role="status" className="empty-state">Loading debts…</p>}
+        {api.error && <p className="storage-error" role="alert">{api.error} Start the backend and use Refresh debts to try again.</p>}
+        {!api.loading && !api.error && <PersonalDebts rate={ledger.exchangeRate} debts={api.debts} currency={currency} direction={direction} onDirection={setDirection} onAdd={() => setEditor({ kind: 'debt' })} onEdit={(debt) => setEditor({ kind: 'debt', debt })} onRepay={(debt) => setEditor({ kind: 'repay', debt })} onDetails={(debt) => setEditor({ kind: 'details', debt })} disabled={false} />}
+        {ledger.debts.length > 0 && <details className="local-archive"><summary>Previous browser debts ({ledger.debts.length}) · read only</summary>
+          <p>These records remain on this device and have not been imported. They are excluded from backend totals. Review them before recreating any records to avoid duplicates.</p>
+          <PersonalDebts id="local-debt" rate={ledger.exchangeRate} debts={ledger.debts} currency={currency} direction={direction} onDirection={setDirection} onAdd={() => {}} onEdit={() => {}} onRepay={() => {}} onDetails={(debt) => setEditor({ kind: 'details', debt })} disabled={true} />
+        </details>}
       </section>
       <section role="tabpanel" id="workspace-panel-business" aria-labelledby="workspace-tab-business" hidden={tab !== 'business'} tabIndex={0}>
         <BusinessSection businesses={ledger.businesses} currency={currency} rate={ledger.exchangeRate} disabled={Boolean(loadError)} onAdd={() => setEditor({ kind: 'business' })} onEdit={(business) => setEditor({ kind: 'business', business })} onFunds={(business) => setEditor({ kind: 'funds', business, transactionKind: 'contribution' })} onReturn={(business) => setEditor({ kind: 'funds', business, transactionKind: 'capital_return' })} onHistory={(business) => setEditor({ kind: 'businessHistory', business })} />
       </section>
-      <section role="tabpanel" id="workspace-panel-activity" aria-labelledby="workspace-tab-activity" hidden={tab !== 'activity'} tabIndex={0}><RecentActivity activity={ledger.activity} currency={currency} rate={ledger.exchangeRate} /></section>
-      <footer>Saved on this device. Clearing site data removes records.</footer>
+      <section role="tabpanel" id="workspace-panel-activity" aria-labelledby="workspace-tab-activity" hidden={tab !== 'activity'} tabIndex={0}><p className="form-help">Backend repayment history and activity previously saved on this device. Debt creation and edit history are not yet provided by the API.</p>{api.error && <p role="alert">Backend repayment history is unavailable until debts refresh successfully.</p>}<RecentActivity activity={activity} currency={currency} rate={ledger.exchangeRate} /></section>
+      <footer>Personal debts: backend database. Business records, exchange rate, and previous local history: this browser.</footer>
     </main>
     {editor?.kind === 'debt' && <DebtEditor debt={editor.debt} currency={currency} direction={direction} onSave={saveDebt} onClose={() => setEditor(null)} />}
-    {editor?.kind === 'repay' && <RepaymentEditor debt={editor.debt} onClose={() => setEditor(null)} onSave={(payment) => {
-      const debt = ledger.debts.find((item) => item.id === editor.debt.id)
-      if (!debt || payment.amount > balance(debt)) return 'The outstanding balance has changed. Close and reopen this repayment.'
-      return commit({ ...ledger, debts: ledger.debts.map((item) => item.id === debt.id ? { ...item, repayments: [...item.repayments, payment] } : item), activity: [{ id: payment.id, date: payment.date, title: debt.direction === 'receivable' ? 'Repayment received' : 'Repayment made', detail: `${debt.person} · Personal debt`, currency: debt.currency, amount: payment.amount }, ...ledger.activity] })
+    {editor?.kind === 'repay' && <RepaymentEditor debt={editor.debt} onClose={() => setEditor(null)} onSave={async (payment) => {
+      try {
+        await api.repay(editor.debt.id, payment)
+        setEditor(null)
+        setNotice('Repayment saved to the backend.')
+        return null
+      } catch (problem) {
+        throw new ApiError(api.message(problem), problem instanceof ApiError ? problem.status : 0)
+      }
     }} />}
     {editor?.kind === 'details' && <Modal title={editor.debt.person} onClose={() => setEditor(null)}>
       <p>Outstanding: <strong>{money(balance(editor.debt), editor.debt.currency)}</strong></p>
@@ -80,7 +106,7 @@ export default function App() {
       <h3>Repayment history</h3>
       <ul className="history">{[...editor.debt.repayments].sort((a, b) => b.date.localeCompare(a.date)).map((item) => <li key={item.id}><strong>{money(item.amount, editor.debt.currency)}</strong> · {dateLabel(item.date)}<p>{item.notes}</p></li>)}</ul>
       {!editor.debt.repayments.length && <p>No repayments yet.</p>}
-      <p className="form-help">Use the card’s Edit or Repayment button to make changes.</p>
+      <p className="form-help">Backend debts can be edited using the card’s Edit or Repayment button. Previous browser debts are read only.</p>
     </Modal>}
     {editor?.kind === 'business' && <BusinessEditor business={editor.business} currency={currency} onClose={() => setEditor(null)} onSave={(business) => {
       const exists = ledger.businesses.some((item) => item.id === business.id)
