@@ -17,7 +17,7 @@ import java.util.UUID
 
 /** SQL and transaction management only; no HTTP statuses or business rules. */
 @Singleton
-@Requires(env = ["ledgerlocal"])
+@Requires(env = ["ledgerlocal", "prod"])
 class DebtRepository(private val transactions: TransactionOperations<Connection>) {
     fun <T : Any> read(action: (Session) -> T): T = transaction(readOnly = true, action = action)
 

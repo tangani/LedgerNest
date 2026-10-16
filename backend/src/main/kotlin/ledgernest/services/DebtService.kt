@@ -15,19 +15,16 @@ import java.util.UUID
 
 /** Coordinates business rules within a single repository transaction. */
 @Singleton
-@Requires(env = ["ledgerlocal"])
+@Requires(env = ["ledgerlocal", "prod"])
 class DebtService(private val repository: DebtRepository) {
-    // Local development only. Replace with authenticated identity before deployment.
-    private val owner = UUID.fromString("00000000-0000-0000-0000-000000000001")
-
-    fun list(limit: Int, offset: Int): List<DebtResponse> {
+    fun list(owner: UUID, limit: Int, offset: Int): List<DebtResponse> {
         if (limit !in 1..100 || offset < 0) fail(HttpStatus.BAD_REQUEST, "Limit must be 1–100 and offset must be non-negative.")
         return repository.read { it.list(owner, limit, offset) }
     }
 
-    fun get(id: UUID): DebtResponse = repository.read { required(it.find(owner, id)) }
+    fun get(owner: UUID, id: UUID): DebtResponse = repository.read { required(it.find(owner, id)) }
 
-    fun create(input: DebtInput): DebtResponse {
+    fun create(owner: UUID, input: DebtInput): DebtResponse {
         DebtRules.validate(input)
         val clean = normalise(input)
         return repository.write { session ->
@@ -37,7 +34,7 @@ class DebtService(private val repository: DebtRepository) {
         }
     }
 
-    fun update(id: UUID, input: DebtInput): DebtResponse {
+    fun update(owner: UUID, id: UUID, input: DebtInput): DebtResponse {
         DebtRules.validate(input)
         if (input.version == null) fail(HttpStatus.BAD_REQUEST, "Version is required when updating a debt.")
         val clean = normalise(input)
@@ -53,7 +50,7 @@ class DebtService(private val repository: DebtRepository) {
         }
     }
 
-    fun repay(id: UUID, input: RepaymentInput): DebtResponse {
+    fun repay(owner: UUID, id: UUID, input: RepaymentInput): DebtResponse {
         DebtRules.validate(input, LocalDate.now(ZoneId.of("Africa/Johannesburg")))
         val clean = input.copy(notes = input.notes.trim())
         try {

@@ -18,28 +18,33 @@ import io.micronaut.scheduling.TaskExecutors
 import io.micronaut.scheduling.annotation.ExecuteOn
 import java.net.URI
 import java.util.UUID
+import io.micronaut.security.annotation.Secured
+import io.micronaut.security.authentication.Authentication
+import io.micronaut.security.rules.SecurityRule
+import ledgernest.services.AuthenticatedOwner
 
+@Secured(SecurityRule.IS_AUTHENTICATED)
 @Controller("/api/v1/debts")
-@Requires(env = ["ledgerlocal"])
+@Requires(env = ["ledgerlocal", "prod"])
 @ExecuteOn(TaskExecutors.BLOCKING)
-class DebtController(private val service: DebtService) {
+class DebtController(private val service: DebtService, private val owners: AuthenticatedOwner) {
     @Get
-    fun list(@QueryValue(defaultValue = "50") limit: Int, @QueryValue(defaultValue = "0") offset: Int): List<DebtResponse> {
-        return service.list(limit, offset)
+    fun list(authentication: Authentication, @QueryValue(defaultValue = "50") limit: Int, @QueryValue(defaultValue = "0") offset: Int): List<DebtResponse> {
+        return service.list(owners.id(authentication), limit, offset)
     }
 
     @Get("/{id}")
-    fun get(@PathVariable id: UUID): DebtResponse = service.get(id)
+    fun get(authentication: Authentication, @PathVariable id: UUID): DebtResponse = service.get(owners.id(authentication), id)
 
     @Post
-    fun create(@Body input: DebtInput): HttpResponse<DebtResponse> {
-        val debt = service.create(input)
+    fun create(authentication: Authentication, @Body input: DebtInput): HttpResponse<DebtResponse> {
+        val debt = service.create(owners.id(authentication), input)
         return HttpResponse.created(debt, URI.create("/api/v1/debts/${debt.id}"))
     }
 
     @Put("/{id}")
-    fun update(@PathVariable id: UUID, @Body input: DebtInput): DebtResponse = service.update(id, input)
+    fun update(authentication: Authentication, @PathVariable id: UUID, @Body input: DebtInput): DebtResponse = service.update(owners.id(authentication), id, input)
 
     @Post("/{id}/repayments")
-    fun repay(@PathVariable id: UUID, @Body input: RepaymentInput): DebtResponse = service.repay(id, input)
+    fun repay(authentication: Authentication, @PathVariable id: UUID, @Body input: RepaymentInput): DebtResponse = service.repay(owners.id(authentication), id, input)
 }
