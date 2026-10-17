@@ -5,7 +5,10 @@ import type { User } from '../../services/authApi'
 import { setToken } from '../../services/session'
 import { LoginPage } from './LoginPage'
 import { AccountEditor } from './AccountEditor'
+import { RecoveryPanel, takeRecoveryLink } from './RecoveryPanel'
+const initialRecovery = takeRecoveryLink()
 export function AuthRoot() {
+  const [recovery, setRecovery] = useState(initialRecovery)
   const [user, setUser] = useState<User | null>(null)
   const [message, setMessage] = useState('')
   const [accountOpen, setAccountOpen] = useState(false)
@@ -37,6 +40,7 @@ export function AuthRoot() {
     try { const current = await authApi.me(); setUser(current); setAccountOpen(true) }
     catch (error) { setAccountError(error instanceof Error ? error.message : 'Could not load account.') }
   }
+  if (recovery) return <main className="auth-page"><RecoveryPanel mode={recovery.purpose} initial={recovery} onClose={() => { setRecovery(null); logout('Sign in to continue.') }} /></main>
   if (!user) return <LoginPage onLogin={login} message={message} />
   return <><App key={user.id} user={user} onLogout={() => logout()} onAccount={() => { void openAccount() }} />
     {accountError && <p className="storage-error" role="alert">{accountError}</p>}
