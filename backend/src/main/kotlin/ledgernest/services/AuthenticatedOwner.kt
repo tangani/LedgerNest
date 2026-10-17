@@ -9,11 +9,14 @@ import java.util.UUID
 
 @Singleton
 @Requires(env = ["ledgerlocal", "prod"])
-class AuthenticatedOwner(private val auth: AuthService) {
+class AuthenticatedOwner(private val auth: AuthService, private val users: ledgernest.repositories.UserRepository) {
     fun id(authentication: Authentication): UUID {
         val id = try { UUID.fromString(authentication.name) }
         catch (_: IllegalArgumentException) { throw HttpStatusException(HttpStatus.UNAUTHORIZED, "Sign in again.") }
-        auth.me(id) // Reject signed subjects for accounts that no longer exist.
+        val user = users.findById(id) ?: throw HttpStatusException(HttpStatus.UNAUTHORIZED, "Sign in again.")
+        // Older tokens without a version are invalidated when this update is deployed.
+        val version = (authentication.attributes["auth_version"] as? Number)?.toLong()
+        if (version != user.authVersion) throw HttpStatusException(HttpStatus.UNAUTHORIZED, "Sign in again.")
         return id
     }
 }

@@ -8,13 +8,13 @@ import java.sql.ResultSet
 import java.sql.SQLException
 import java.util.UUID
 
-class StoredUser(val id: UUID, val firstName: String, val surname: String, val username: String, val identifierType: String, val passwordHash: String)
+class StoredUser(val id: UUID, val firstName: String, val surname: String, val username: String, val identifierType: String, val passwordHash: String, val authVersion: Long = 0)
 class DuplicateUsernameException(cause: Throwable) : RuntimeException(cause)
 
 @Singleton
 @Requires(env = ["ledgerlocal", "prod"])
 class UserRepository(private val transactions: TransactionOperations<Connection>) {
-    private fun map(row: ResultSet) = StoredUser(row.getObject("id", UUID::class.java), row.getString("first_name"), row.getString("surname"), row.getString("username"), row.getString("identifier_type"), row.getString("password_hash"))
+    private fun map(row: ResultSet) = StoredUser(row.getObject("id", UUID::class.java), row.getString("first_name"), row.getString("surname"), row.getString("username"), row.getString("identifier_type"), row.getString("password_hash"), row.getLong("auth_version"))
     fun findByUsername(username: String): StoredUser? = transactions.executeRead { status ->
         status.connection.prepareStatement("SELECT * FROM ln_user WHERE username=?").use { statement ->
             statement.setString(1, username)

@@ -18,8 +18,8 @@ class LoginAuthenticationProvider(private val service: AuthService, private val 
         if (username.length > 254 || password.length > 128) return AuthenticationResponse.failure()
         val ip = requestContext?.remoteAddress?.address?.hostAddress ?: "unknown"
         if (!limits.allow("login-ip:$ip", 30) || !limits.allow("login-identifier:${service.normalise(username)}", 10)) return AuthenticationResponse.failure()
-        val id = service.authenticate(username, password) ?: return AuthenticationResponse.failure()
+        val user = service.authenticate(username, password) ?: return AuthenticationResponse.failure()
         // The JWT subject is the immutable user ID, never an email or client-supplied owner ID.
-        return AuthenticationResponse.success(id.toString())
+        return AuthenticationResponse.success(user.id.toString(), mapOf<String, Any>("auth_version" to user.authVersion))
     }
 }

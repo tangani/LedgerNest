@@ -35,12 +35,12 @@ class AuthService(private val users: UserRepository, private val passwords: Pass
         }
         return response(user)
     }
-    fun authenticate(username: String, password: String): UUID? {
+    fun authenticate(username: String, password: String): StoredUser? {
         if (username.length > 254 || password.length !in 1..128) return null
         val login = identifiers.parse(username)
         val user = login?.let { users.findByUsername(it.value) }
         val valid = passwords.verify(password, user?.passwordHash ?: dummyHash)
-        return if (valid) user?.id else null
+        return if (valid) user else null
     }
     fun me(id: UUID): UserResponse = response(required(id))
     fun changeUsername(id: UUID, input: ChangeUsernameInput): UserResponse {
