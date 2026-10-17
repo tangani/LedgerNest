@@ -18,7 +18,7 @@ export async function request(path: string, method = 'GET', body?: unknown, sign
   const cancel = () => controller.abort()
   if (signal?.aborted) controller.abort()
   signal?.addEventListener('abort', cancel, { once: true })
-  const timer = setTimeout(cancel, 15000)
+  const timer = setTimeout(cancel, 90000)
   try {
     const response = await fetch(path, {
       method, signal: controller.signal, cache: 'no-store',
