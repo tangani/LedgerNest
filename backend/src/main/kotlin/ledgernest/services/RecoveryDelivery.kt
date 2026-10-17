@@ -26,7 +26,8 @@ class RecoveryDelivery(private val env: Environment, private val json: JsonMappe
         val result=client.send(builder.build(),HttpResponse.BodyHandlers.ofString())
         // Never log provider response bodies, which can include addresses or credentials.
         if(result.statusCode() !in 200..299) throw IllegalStateException("Recovery provider returned HTTP ${result.statusCode()}")
-        return json.readValue(result.body(),JsonNode::class.java)
+        return json.readValue(result.body(), JsonNode::class.java)
+            ?: throw IllegalStateException("Recovery provider returned an empty JSON response")
     }
     fun email(target:String,id:UUID,token:String,purpose:String) {
         val base=config("recovery.frontend-url").trimEnd('/')
