@@ -30,10 +30,16 @@ class RecoveryDelivery(private val env: Environment, private val json: JsonMappe
         val result=client.send(builder.build(),HttpResponse.BodyHandlers.ofString())
         // Never log provider response bodies, which can include addresses or credentials.
         if (result.statusCode() !in 200..299) {
+            val providerCode = runCatching {
+                val response = json.readValue(result.body(), Map::class.java)
+                (response["code"] as? Number)?.toInt()
+            }.getOrNull()
+
             log.warn(
-                "Recovery provider rejected request: host={}, httpStatus={}",
+                "Recovery provider rejected request: host={}, httpStatus={}, providerCode={}",
                 URI.create(url).host,
-                result.statusCode()
+                result.statusCode(),
+                providerCode
             )
 
             throw IllegalStateException(
