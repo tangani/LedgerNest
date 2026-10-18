@@ -12,12 +12,16 @@ import java.net.http.HttpResponse
 import java.time.Duration
 import java.util.Base64
 import java.util.UUID
+import org.slf4j.LoggerFactory
 
 @Singleton
 class RecoveryDelivery(private val env: Environment, private val json: JsonMapper) {
     private val client=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
     private fun config(key: String)=env.getProperty(key,String::class.java).filter { it.isNotBlank() }.orElseThrow { IllegalStateException("Recovery delivery configuration missing") }
+    private val log = LoggerFactory.getLogger(RecoveryDelivery::class.java)
+
     fun enabled(channel: String)=env.getProperty("recovery.$channel.enabled",Boolean::class.java).orElse(false)
+
     private fun send(url:String, authorization:String, contentType:String, body:String, key:String?=null): JsonNode {
         val builder=HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(20))
             .header("Authorization",authorization).header("Content-Type",contentType)
@@ -25,7 +29,17 @@ class RecoveryDelivery(private val env: Environment, private val json: JsonMappe
         if(key!=null) builder.header("Idempotency-Key",key)
         val result=client.send(builder.build(),HttpResponse.BodyHandlers.ofString())
         // Never log provider response bodies, which can include addresses or credentials.
-        if(result.statusCode() !in 200..299) throw IllegalStateException("Recovery provider returned HTTP ${result.statusCode()}")
+        if (result.statusCode() !in 200..299) {
+            log.warn(
+                "Recovery provider rejected request: host={}, httpStatus={}",
+                URI.create(url).host,
+                result.statusCode()
+            )
+
+            throw IllegalStateException(
+                "Recovery provider returned HTTP ${result.statusCode()}"
+            )
+        }
         return json.readValue(result.body(), JsonNode::class.java)
             ?: throw IllegalStateException("Recovery provider returned an empty JSON response")
     }

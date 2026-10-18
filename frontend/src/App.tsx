@@ -3,6 +3,7 @@ import { useState } from 'react'
 import './App.css'
 import { Tabs } from './components/Tabs'
 import { Modal } from './components/Modal'
+import { AppHeader } from './components/AppHeader'
 import { PersonalDebts } from './features/debts/PersonalDebts'
 import { DebtEditor } from './features/debts/DebtEditor'
 import { RepaymentEditor } from './features/debts/RepaymentEditor'
@@ -74,7 +75,10 @@ export default function App({ user, onLogout, onAccount }: { user: User; onLogou
   }
   return <div className="app-shell">
     <a className="skip-link" href="#main">Skip to content</a>
-    <header className="app-header"><a className="brand" href="#main"><span className="brand-mark" aria-hidden="true">L</span>LedgerNest</a><div className="account-controls"><span>{user.firstName}</span><button className="secondary" onClick={onAccount}>Account</button><button className="secondary" onClick={onLogout}>Sign out</button></div></header>
+    <AppHeader
+        onAccount={onAccount}
+        onLogout={onLogout}
+    />
     <main id="main">
       <div className="workspace-heading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>A little more clarity.</h1></div><label className="currency-control">Display currency<select value={currency} onChange={(event) => setCurrency(event.target.value as Currency)}><option value="ZAR">ZAR · South African rand</option><option value="USD">USD · US dollar</option></select></label></div>
       {loadError && <p className="storage-error" role="alert">{loadError}</p>}

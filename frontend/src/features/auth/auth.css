@@ -8,3 +8,20 @@
 .account-controls button { min-height: 44px; }
 .account-identifier { overflow-wrap: anywhere; }
 @media (min-width: 640px) { .auth-card { padding: 2rem; } }
+
+.auth-brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.auth-logo {
+    display: block;
+    width: min(100%, 280px);
+    height: auto;
+    object-fit: contain;
+}
+
+.auth-card > h1 {
+    margin-bottom: 20px;
+}

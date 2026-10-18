@@ -53,7 +53,21 @@ class RecoveryService(private val repo: RecoveryRepository,private val users: Us
         repo.create(RecoveryChallenge(id,user.id,purpose,target,channel,digest(token),user.authVersion,null,Instant.now().plusSeconds(600)))
         try {
             if(channel=="email") delivery.email(target,id,token,purpose) else repo.setSid(id,delivery.sms(target))
-        } catch (_: Exception) { repo.cancel(id); throw HttpStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Could not send verification. Try again later.") }
+        } catch (problem: Exception) {
+            log.warn(
+                "Recovery delivery failed: challenge={}, channel={}, errorType={}",
+                id,
+                channel,
+                problem.javaClass.simpleName
+            )
+
+            repo.cancel(id)
+
+            throw HttpStatusException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Could not send verification. Try again later."
+            )
+        }
         return id
     }
     fun finish(input:RecoveryFinishInput):RecoveryMessage {

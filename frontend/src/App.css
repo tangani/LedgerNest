@@ -71,3 +71,82 @@ footer { font-size: 11px; line-height: 1.8; color: #5d7154; margin-top: 32px; pa
 .local-archive { margin-top: 1.5rem; padding: 1rem; border: 1px solid #d8e2df; border-radius: 12px; }
 .local-archive summary { cursor: pointer; min-height: 44px; font-weight: 600; }
 .local-archive > p { line-height: 1.5; }
+/* Compact account dropdown, aligned to the right. */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-block: 12px;
+  background: #163d31;
+  color: #edf3e7;
+}
+
+.app-header .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-logo {
+  display: block;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.brand-name {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.7px;
+  white-space: nowrap;
+}
+
+.account-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.app-header .header-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.app-header .header-account {
+  border-color: #edf3e766;
+}
+
+.app-header .header-button:hover {
+  background: #ffffff14;
+}
+
+.app-header :is(a, button):focus-visible {
+  outline: 2px solid #d9c58b;
+  outline-offset: 4px;
+}
+
+/* Leave room for both buttons on narrow phones. */
+@media (max-width: 380px) {
+  .brand-name {
+    display: none;
+  }
+}

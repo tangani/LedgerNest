@@ -1,4 +1,5 @@
 import { getToken, expireSession } from './session'
+import { Capacitor } from '@capacitor/core'
 
 export class ApiError extends Error {
   readonly status: number
@@ -12,6 +13,10 @@ export class ApiError extends Error {
 
 const object = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
 
+const API_ORIGIN = Capacitor.isNativePlatform()
+    ? 'https://ledgernest-api.onrender.com'
+    : ''
+
 export async function request(path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<unknown> {
   const requestToken = getToken()
   const controller = new AbortController()
@@ -20,7 +25,7 @@ export async function request(path: string, method = 'GET', body?: unknown, sign
   signal?.addEventListener('abort', cancel, { once: true })
   const timer = setTimeout(cancel, 90000)
   try {
-    const response = await fetch(path, {
+    const response = await fetch(`${API_ORIGIN}${path}`, {
       method, signal: controller.signal, cache: 'no-store',
       headers: { Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(requestToken ? { Authorization: `Bearer ${requestToken}` } : {}) },
       body: body === undefined ? undefined : JSON.stringify(body),

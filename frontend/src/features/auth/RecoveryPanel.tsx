@@ -1,81 +1,187 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { request } from '../../services/http'
+import { authApi } from '../../services/authApi'
+import type { RecoveryPurpose } from '../../services/authApi'
+import { PasswordField } from './PasswordField'
 
-type Challenge = { id: string; purpose: 'enroll' | 'reset'; secret?: string }
-function result(value: unknown): { id: string; message: string } {
-  if (!value || typeof value !== 'object') throw new Error('Invalid recovery response.')
-  const v = value as Record<string, unknown>
-  if (typeof v.id !== 'string' || typeof v.message !== 'string') throw new Error('Invalid recovery response.')
-  return { id: v.id, message: v.message }
+type Challenge = { id: string; purpose: RecoveryPurpose; secret?: string }
+type Props = {
+  mode: RecoveryPurpose
+  initial?: Challenge | null
+  onClose: () => void
 }
-// Read once on initial application mount; immediately remove secrets from the address bar.
+
+function field(form: FormData, name: string): string {
+  const value = form.get(name)
+  return typeof value === 'string' ? value : ''
+}
+
+// Existing email links still work if email delivery is enabled separately.
+// Consume on initial application mount, then remove the secret from the address bar.
 export function takeRecoveryLink(): Challenge | null {
   const params = new URLSearchParams(window.location.hash.slice(1))
   if (!params.has('recovery')) return null
-  const id = params.get('recovery') ?? '', secret = params.get('secret') ?? ''
+  const id = params.get('recovery') ?? ''
+  const secret = params.get('secret') ?? ''
   const purpose = params.get('purpose')
   window.history.replaceState(null, '', window.location.pathname + window.location.search)
-  if (!/^[0-9a-f-]{36}$/i.test(id) || !secret || !['enroll', 'reset'].includes(purpose ?? '')) return null
-  return { id, secret, purpose: purpose as 'enroll' | 'reset' }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ||
+      !secret || (purpose !== 'enroll' && purpose !== 'reset')) return null
+  return { id, secret, purpose }
 }
-export function RecoveryPanel({ mode, initial, onClose }: { mode: 'enroll' | 'reset'; initial?: Challenge | null; onClose: () => void }) {
+
+export function RecoveryPanel({ mode, initial, onClose }: Props) {
   const [challenge, setChallenge] = useState<Challenge | null>(initial ?? null)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
-  const [channel, setChannel] = useState('email')
   const lock = useRef(false)
+  const purpose = challenge?.purpose ?? mode
+
+  async function startChallenge(form: FormData) {
+    const response = mode === 'enroll'
+      ? await authApi.enrollRecovery(field(form, 'target').trim(), field(form, 'currentPassword'))
+      : await authApi.startSmsRecovery(field(form, 'username').trim())
+    setNotice(response.message)
+    setChallenge({ id: response.id, purpose: mode })
+  }
+
+  async function finishChallenge(form: FormData, current: Challenge) {
+    const password = field(form, 'newPassword')
+    if (current.purpose === 'reset' && password !== field(form, 'confirmPassword')) {
+      throw new Error('Passwords do not match.')
+    }
+    const response = await authApi.finishRecovery(
+      current.id,
+      current.secret ?? field(form, 'code').trim(),
+      current.purpose === 'reset' ? password : undefined,
+    )
+    setNotice(response.message)
+    setDone(true)
+    setChallenge(null)
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (lock.current) return
-    const form = new FormData(event.currentTarget)
-    lock.current = true; setBusy(true); setError('')
+    const element = event.currentTarget
+    const form = new FormData(element)
+    lock.current = true
+    setBusy(true)
+    setError('')
     try {
-      if (challenge) {
-        const password = String(form.get('newPassword') ?? '')
-        if (challenge.purpose === 'reset' && password !== String(form.get('confirmPassword'))) throw new Error('Passwords do not match.')
-        const raw = await request('/api/v1/auth/recovery/finish', 'POST', {
-          id: challenge.id, secret: challenge.secret ?? String(form.get('code') ?? ''),
-          ...(challenge.purpose === 'reset' ? { newPassword: password } : {}),
-        })
-        if (!raw || typeof raw !== 'object' || !('message' in raw) || typeof raw.message !== 'string') throw new Error('Invalid recovery response.')
-        setNotice(raw.message); setDone(true); setChallenge(null)
-      } else {
-        const raw = mode === 'enroll'
-          ? await request('/api/v1/auth/recovery/enroll', 'POST', { target: String(form.get('target')).trim(), currentPassword: String(form.get('currentPassword')) })
-          : await request('/api/v1/auth/recovery/start', 'POST', { username: String(form.get('username')).trim(), channel })
-        const response = result(raw)
-        setNotice(response.message)
-        const sms = mode === 'enroll' ? String(form.get('target')).trim().startsWith('+') : channel === 'sms'
-        if (sms) setChallenge({ id: response.id, purpose: mode })
-      }
-    } catch (problem) { setError(problem instanceof Error ? problem.message : 'Recovery could not be completed.') }
-    finally { lock.current = false; setBusy(false) }
+      if (challenge) await finishChallenge(form, challenge)
+      else await startChallenge(form)
+      element.reset()
+    } catch (problem) {
+      setError(problem instanceof Error ? problem.message : 'Recovery could not be completed.')
+    } finally {
+      lock.current = false
+      setBusy(false)
+    }
   }
-  return <section className="auth-card" aria-label="Account recovery">
-    <h2>{mode === 'enroll' ? 'Set up account recovery' : 'Reset your password'}</h2>
-    <p>{mode === 'enroll' ? 'Verify an email or phone you control. It can recover your account even if your login is a username.' : 'Use a recovery contact you previously verified in Account. Existing unverified contact details cannot reset a password.'}</p>
-    {!done && <form className="editor-form" onSubmit={submit}>
-      <fieldset className="editor-fields" disabled={busy}>
-        {!challenge && (mode === 'enroll' ? <>
-          <label>Recovery email or international phone<input name="target" required maxLength={254} autoCapitalize="none" spellCheck={false} /></label>
-          <label>Current password<input name="currentPassword" type="password" required maxLength={128} autoComplete="current-password" /></label>
-        </> : <>
-          <label>Sign-in email, phone or username<input name="username" required maxLength={254} autoComplete="username" autoCapitalize="none" spellCheck={false} /></label>
-          <label>Verified recovery method<select value={channel} onChange={e => setChannel(e.target.value)}><option value="email">Email link</option><option value="sms">SMS code</option></select></label>
-        </>)}
-        {challenge && !challenge.secret && <label>SMS code<input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{4,10}" required /></label>}
-        {challenge?.purpose === 'reset' && <>
-          <label>New password<input name="newPassword" type="password" minLength={15} maxLength={128} required autoComplete="new-password" /></label>
-          <label>Confirm password<input name="confirmPassword" type="password" minLength={15} maxLength={128} required autoComplete="new-password" /></label>
-        </>}
-      </fieldset>
-      <button className="primary" disabled={busy}>{busy ? 'Please wait…' : challenge ? 'Confirm' : 'Send verification'}</button>
-    </form>}
-    {notice && <p role="status">{notice}</p>}
-    {error && <p className="form-error" role="alert">{error}</p>}
-    <button className="secondary" disabled={busy} onClick={onClose}>{done ? 'Continue' : 'Back'}</button>
-  </section>
+
+  function startAgain() {
+    setChallenge(null)
+    setNotice('')
+    setError('')
+  }
+
+  return (
+    <section className="auth-card" aria-labelledby="recovery-heading">
+      <h2 id="recovery-heading">
+        {purpose === 'enroll' ? 'Set up SMS recovery' : 'Reset your password'}
+      </h2>
+      {!done && (
+        <p>
+          {challenge?.secret
+            ? 'Confirm this recovery link below.'
+            : purpose === 'enroll'
+              ? 'Verify a phone number you control so you can recover your account later.'
+              : 'We will send a code to the recovery phone you previously verified in Account.'}
+        </p>
+      )}
+
+      {!done && (
+        <form
+          key={challenge ? 'confirm' : 'request'}
+          className="editor-form"
+          onSubmit={submit}
+          aria-busy={busy}
+        >
+          <fieldset className="editor-fields" disabled={busy}>
+            {!challenge && (mode === 'enroll' ? (
+              <>
+                <label>
+                  Recovery phone number
+                  <input
+                    name="target" type="tel" autoComplete="tel"
+                    placeholder="+27… or +263…" maxLength={40}
+                    aria-describedby="recovery-phone-help" required
+                  />
+                </label>
+                <p id="recovery-phone-help" className="form-help">
+                  Include the country code. This number is verified before it can reset your password.
+                </p>
+                <PasswordField
+                  label="Current password" name="currentPassword"
+                  autoComplete="current-password" maxLength={128}
+                />
+              </>
+            ) : (
+              <label>
+                Sign-in email, phone or username
+                <input
+                  name="username" autoComplete="username" autoCapitalize="none"
+                  spellCheck={false} maxLength={254} required
+                />
+              </label>
+            ))}
+
+            {challenge && !challenge.secret && (
+              <label>
+                SMS code
+                <input
+                  name="code" type="text" inputMode="numeric"
+                  autoComplete="one-time-code" pattern="[0-9]{4,10}"
+                  minLength={4} maxLength={10} required
+                />
+              </label>
+            )}
+
+            {challenge?.purpose === 'reset' && (
+              <>
+                <PasswordField
+                  label="New password" name="newPassword" autoComplete="new-password"
+                  minLength={15} maxLength={128} describedBy="recovery-password-help"
+                />
+                <PasswordField
+                  label="Confirm password" name="confirmPassword"
+                  autoComplete="new-password" minLength={15} maxLength={128}
+                />
+                <p id="recovery-password-help" className="form-help">
+                  Use 15–128 characters and choose a unique password.
+                </p>
+              </>
+            )}
+          </fieldset>
+          <button className="primary" disabled={busy} type="submit">
+            {busy ? 'Please wait…' : !challenge ? 'Send SMS code'
+              : challenge.purpose === 'enroll' ? 'Verify recovery contact' : 'Reset password'}
+          </button>
+        </form>
+      )}
+      {notice && <p role="status">{notice}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
+      {challenge && !done && (
+        <button type="button" className="secondary" disabled={busy} onClick={startAgain}>
+          Start again
+        </button>
+      )}
+      <button type="button" className="secondary" disabled={busy} onClick={onClose}>
+        {done ? 'Continue' : 'Back'}
+      </button>
+    </section>
+  )
 }
