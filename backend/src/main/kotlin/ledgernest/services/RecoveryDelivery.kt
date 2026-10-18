@@ -43,10 +43,38 @@ class RecoveryDelivery(private val env: Environment, private val json: JsonMappe
     private fun twilio(resource:String,fields:Map<String,String>):JsonNode {
         val service=config("recovery.twilio-service-sid")
         require(Regex("VA[0-9a-fA-F]{32}").matches(service))
-        val credential="${config("recovery.twilio-account-sid")}:${config("recovery.twilio-auth-token")}"
+        val account=config("recovery.twilio-account-sid")
+        require(Regex("AC[0-9a-fA-F]{32}").matches(account))
+        val credential="$account:${config("recovery.twilio-auth-token")}"
         val body=fields.entries.joinToString("&") { URLEncoder.encode(it.key,"UTF-8")+"="+URLEncoder.encode(it.value,"UTF-8") }
         return send("https://verify.twilio.com/v2/Services/$service/$resource","Basic "+Base64.getEncoder().encodeToString(credential.toByteArray()),"application/x-www-form-urlencoded",body)
     }
-    fun sms(target:String):String = twilio("Verifications",mapOf("To" to target,"Channel" to "sms")).get("sid")?.stringValue ?: throw IllegalStateException("Missing verification ID")
-    fun check(sid:String,code:String):Boolean = twilio("VerificationCheck",mapOf("VerificationSid" to sid,"Code" to code)).get("status")?.stringValue=="approved"
+    fun sms(target:String):String = TwilioVerifyResponses.pendingSid(
+        twilio("Verifications",mapOf("To" to target,"Channel" to "sms"))
+    )
+    fun check(sid:String,code:String):Boolean {
+        require(Regex("VE[0-9a-fA-F]{32}").matches(sid))
+        require(Regex("[0-9]{4,10}").matches(code))
+        // Use the provider SID stored for this database challenge, never a browser-supplied number.
+        return TwilioVerifyResponses.approved(
+            twilio("VerificationCheck",mapOf("VerificationSid" to sid,"Code" to code)),sid
+        )
+    }
+}
+
+/** Accept only a usable SMS challenge and an approval for that exact provider SID. */
+internal object TwilioVerifyResponses {
+    fun pendingSid(response: JsonNode): String {
+        val sid=response.get("sid")?.stringValue
+        check(sid!=null && Regex("VE[0-9a-fA-F]{32}").matches(sid) &&
+            response.get("channel")?.stringValue=="sms" &&
+            response.get("status")?.stringValue=="pending") {
+            "SMS verification could not be started"
+        }
+        return requireNotNull(sid)
+    }
+    fun approved(response: JsonNode, sid: String): Boolean =
+        response.get("sid")?.stringValue==sid &&
+        response.get("channel")?.stringValue=="sms" &&
+        response.get("status")?.stringValue=="approved"
 }

@@ -31,7 +31,7 @@ class RecoveryService(private val repo: RecoveryRepository,private val users: Us
         if(!delivery.enabled(channel)) throw HttpStatusException(HttpStatus.SERVICE_UNAVAILABLE,"This recovery channel is not enabled yet.")
         limit("delivery:global",100,3600);limit("target:${digest(target.value)}",3,3600)
         val idChallenge=issue(user,target.value,channel,"enroll")
-        return RecoveryChallengeResponse(idChallenge,"Check your email link or enter the SMS code to verify your recovery contact.")
+        return RecoveryChallengeResponse(idChallenge,if(channel=="sms") "Enter the SMS code to verify your recovery phone." else "Check your email link to verify your recovery email.")
     }
     fun start(input:RecoveryStartInput):RecoveryChallengeResponse {
         // Always the same public response and random challenge shape for ineligible accounts.
