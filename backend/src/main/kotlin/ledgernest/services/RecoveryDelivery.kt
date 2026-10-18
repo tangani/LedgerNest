@@ -32,7 +32,11 @@ class RecoveryDelivery(private val env: Environment, private val json: JsonMappe
         if (result.statusCode() !in 200..299) {
             val providerCode = runCatching {
                 val response = json.readValue(result.body(), Map::class.java)
-                (response["code"] as? Number)?.toInt()
+                val code = response?.entries
+                    ?.firstOrNull { it.key == "code" }
+                    ?.value
+
+                (code as? Number)?.toInt()
             }.getOrNull()
 
             log.warn(
