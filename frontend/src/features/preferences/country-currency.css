@@ -7,3 +7,53 @@
 .phone-input .form-help { margin: 0; }
 .auth-card .auth-legacy { display: block; margin: .5rem auto 0; padding: .5rem; min-height: 44px; border: 0; background: transparent; color: #163d31; text-decoration: underline; font: inherit; cursor: pointer; }
 .account-preferences { margin: 1rem 0; padding: 1rem 0; border-block: 1px solid #dbe6e0; }
+
+/* Compact signup; preserve readable text, touch targets, and natural scrolling. */
+.auth-page.auth-page--signup { align-items: start; padding-block: .75rem; }
+.auth-card.auth-card--signup { padding: 1rem; }
+.auth-card--signup .editor-fields { gap: .75rem; }
+.auth-card--signup .editor-form { gap: .75rem; }
+.auth-card--signup h1 { margin: 0 0 .75rem; font-size: clamp(1.6rem, 6vw, 1.9rem); }
+.auth-card--signup .form-help { margin-block: 0; font-size: .875rem; line-height: 1.4; }
+.auth-card--signup .auth-switch { margin-top: .75rem; }
+.signup-name-row { display: grid; gap: .75rem; min-width: 0; }
+.signup-name-row label { display: grid; gap: .375rem; min-width: 0; }
+.signup-name-row input { min-width: 0; }
+@media (min-width: 360px) {
+  .signup-name-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Compact phone controls on auth forms; labels and touch targets stay accessible. */
+.phone-input.phone-input--compact {
+  grid-template-columns: minmax(6.5rem, .9fr) minmax(0, 1.8fr);
+  gap: .375rem .625rem;
+  align-items: end;
+}
+.phone-input--compact label { min-width: 0; }
+.phone-input--compact select, .phone-input--compact input { width: 100%; min-width: 0; min-height: 46px; }
+.phone-input--compact select { text-overflow: ellipsis; }
+.phone-input--compact .form-help { grid-column: 1 / -1; font-size: .8rem; line-height: 1.4; }
+.auth-card .editor-fields { gap: .75rem; }
+.auth-card .auth-legacy { margin-block: .25rem; font-size: .875rem; }
+.auth-card .auth-switch { margin-top: .5rem; }
+.auth-card .auth-brand { margin-bottom: .5rem; }
+.auth-card .auth-logo { width: min(100%, 190px); }
+
+/* Native app content is one white surface, with no floating card. */
+html.ledgernest-native, html.ledgernest-native body, html.ledgernest-native #root,
+html.ledgernest-native .app-shell { background: #fff; }
+.auth-page.auth-page--native {
+  background: #fff;
+  width: 100%; max-width: none; margin: 0;
+  min-height: 100dvh;
+  padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  place-items: start center;
+}
+.auth-page--native .auth-card,
+.auth-page--native .auth-card.auth-card--signup {
+  width: 100%; max-width: 30rem; margin: 0;
+  padding: 0; border: 0; border-radius: 0; box-shadow: none; background: #fff;
+}
+.auth-page--native .auth-logo { width: min(100%, 160px); }
+.auth-page--native .auth-brand { margin: 0 0 .25rem; }
+.auth-page--native .auth-card h1 { margin: .25rem 0 .75rem; }
