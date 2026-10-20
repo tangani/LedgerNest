@@ -65,6 +65,20 @@ class UserRepository(private val transactions: TransactionOperations<Connection>
             statement.setObject(3, id)
             check(statement.executeUpdate() == 1)
         }
+        // History does not reserve identifiers or grant access to an account.
+        status.connection.prepareStatement("INSERT INTO ln_identifier_change_history(id,user_id,old_username,new_username) VALUES (?,?,?,?)").use { statement ->
+            statement.setObject(1, UUID.randomUUID())
+            statement.setObject(2, id)
+            statement.setString(3, current)
+            statement.setString(4, username)
+            check(statement.executeUpdate() == 1)
+        }
+        // Release only after updating ln_user, so its foreign key remains valid.
+        // All three writes share the transaction: a failure rolls everything back.
+        status.connection.prepareStatement("DELETE FROM ln_identifier_registry WHERE username=?").use { statement ->
+            statement.setString(1, current)
+            check(statement.executeUpdate() == 1)
+        }
         true
     })
 }
