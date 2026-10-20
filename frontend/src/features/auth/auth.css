@@ -25,3 +25,29 @@
 .auth-card > h1 {
     margin-bottom: 20px;
 }
+
+/* Smaller logo and less space before the heading. */
+.auth-card .auth-brand {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 12px;
+    padding: 0;
+}
+
+.auth-card .auth-logo {
+    display: block;
+    width: min(100%, 240px);
+    height: auto;
+}
+
+.auth-card .auth-brand + h1 {
+    margin-top: 0;
+}
+
+/* Center the button and its text. */
+.auth-card .auth-forgot {
+    display: block;
+    width: fit-content;
+    margin: 12px auto 0;
+    text-align: center;
+}

@@ -178,10 +178,14 @@ export function LoginPage({ onLogin, message }: Props) {
         >
           {register ? 'Already have an account? Sign in' : 'New here? Create an account'}
         </button>
-        <button type="button" className="secondary" disabled={busy} onClick={openRecovery}>
+        <button
+            type="button"
+            className="secondary auth-forgot"
+            disabled={busy}
+            onClick={openRecovery}
+        >
           Forgot password?
         </button>
-        <p className="form-help">For now, refreshing this page signs you out.</p>
       </section>
     </main>
   )
