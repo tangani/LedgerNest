@@ -1,3 +1,4 @@
+import type { User } from '../../services/authApi'
 import { authApi } from '../../services/authApi'
 import { ApiError } from '../../services/http'
 
@@ -21,7 +22,7 @@ export function readCredentials(form: FormData): Credentials {
   }
 }
 
-export async function registerAccount(form: FormData): Promise<void> {
+export async function registerAccount(form: FormData): Promise<User> {
   const credentials = readCredentials(form)
 
   if (credentials.password !== readField(form, 'confirmPassword')) {
@@ -33,7 +34,7 @@ export async function registerAccount(form: FormData): Promise<void> {
     throw new Error(`Use ${PASSWORD_MIN_LENGTH}–${PASSWORD_MAX_LENGTH} characters for your password.`)
   }
 
-  await authApi.register({
+  return authApi.register({
     firstName: readField(form, 'firstName').trim(),
     surname: readField(form, 'surname').trim(),
     ...credentials,

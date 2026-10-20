@@ -1,0 +1,9 @@
+.auth-card .auth-brand { display: flex; justify-content: center; margin: 0 0 12px; padding: 0; }
+.auth-card .auth-logo { display: block; width: min(100%, 240px); height: auto; }
+.auth-card .auth-brand + h1 { margin-top: 0; }
+.auth-card .auth-forgot { display: block; width: fit-content; margin: 12px auto 0; text-align: center; }
+.phone-input, .phone-input label, .account-preferences, .account-preferences label { display: grid; gap: .5rem; min-width: 0; }
+.phone-input select, .auth-card select, .account-preferences select { width: 100%; box-sizing: border-box; min-height: 44px; padding: .65rem; border: 1px solid #bdc9b8; border-radius: 8px; background: white; color: #203b32; font: inherit; }
+.phone-input .form-help { margin: 0; }
+.auth-card .auth-legacy { display: block; margin: .5rem auto 0; padding: .5rem; min-height: 44px; border: 0; background: transparent; color: #163d31; text-decoration: underline; font: inherit; cursor: pointer; }
+.account-preferences { margin: 1rem 0; padding: 1rem 0; border-block: 1px solid #dbe6e0; }
