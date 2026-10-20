@@ -2,7 +2,7 @@ import type { User } from '../../services/authApi'
 import { authApi } from '../../services/authApi'
 import { ApiError } from '../../services/http'
 
-export const PASSWORD_MIN_LENGTH = 15
+export const PASSWORD_MIN_LENGTH = 8
 export const PASSWORD_MAX_LENGTH = 128
 
 export type Credentials = {

@@ -1,7 +1,7 @@
-import type { Currency } from '../models/ledger'
-export type UserPreferences = { country: string; currency: Currency }
+import { isCurrencyCode } from './currencyCatalogue'
+export type UserPreferences = { country: string; currency: string }
 export const PREFERENCES_EVENT = 'ledgernest-preferences-changed'
-export function defaultCurrency(country: string): Currency {
+export function defaultCurrency(country: string): string {
   // Product defaults within the backend's CURRENT supported currency set.
   // Zimbabwe intentionally uses USD. Other countries fall back to USD for now.
   return country === 'ZA' ? 'ZAR' : 'USD'
@@ -13,7 +13,7 @@ export function readPreferences(userId: string, suggestedCountry = 'ZA'): UserPr
     const stored: unknown = JSON.parse(localStorage.getItem(key(userId)) ?? 'null')
     if (!stored || typeof stored !== 'object') return fallback
     const value = stored as Record<string, unknown>
-    if ((value.currency !== 'USD' && value.currency !== 'ZAR') ||
+    if (!isCurrencyCode(value.currency) ||
         typeof value.country !== 'string' || !/^(?:[A-Z]{2})?$/.test(value.country)) return fallback
     return { country: value.country, currency: value.currency }
   } catch { return fallback }

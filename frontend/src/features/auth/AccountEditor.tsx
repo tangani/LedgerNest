@@ -1,3 +1,4 @@
+import { DeleteAccountPanel } from './DeleteAccountPanel'
 import { PreferencesPanel } from '../preferences/PreferencesPanel'
 import { PhoneInput } from '../../components/PhoneInput'
 import { canonicalPhone, countryFromPhone, suggestedCountry } from '../../lib/countries'
@@ -9,7 +10,7 @@ import { request } from '../../services/http'
 import { Modal } from '../../components/Modal'
 import { authApi } from '../../services/authApi'
 import type { User } from '../../services/authApi'
-export function AccountEditor({ user, onUpdate, onClose }: { user: User; onUpdate: (user: User) => void; onClose: () => void }) {
+export function AccountEditor({ user, onUpdate, onClose, onDeleted }: { user: User; onUpdate: (user: User) => void; onClose: () => void; onDeleted: () => void }) {
   const [recovery, setRecovery] = useState(false)
   const [recoveryStatus, setRecoveryStatus] = useState('Checking recovery setup…')
   useEffect(() => { void request('/api/v1/auth/recovery/status').then(raw => {
@@ -40,5 +41,6 @@ export function AccountEditor({ user, onUpdate, onClose }: { user: User; onUpdat
       <label>Current password<input name="currentPassword" type="password" autoComplete="current-password" required maxLength={128} /></label>
     </fieldset>{error && <p role="alert" className="form-error">{error}</p>}
     <button className="primary" disabled={busy} type="submit">{busy ? 'Saving…' : 'Change sign-in identifier'}</button></form>
+    <DeleteAccountPanel userId={user.id} onDeleted={onDeleted} />
   </Modal>
 }

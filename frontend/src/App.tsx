@@ -1,3 +1,4 @@
+import { CurrencySelect } from './components/CurrencySelect'
 import type { User } from './services/authApi'
 import { useState } from 'react'
 import './App.css'
@@ -49,9 +50,10 @@ export default function App({ user, onLogout, onAccount }: { user: User; onLogou
   const [tab, setTab] = useState<'debts' | 'business' | 'activity'>('debts')
   const { preferences, update: updatePreferences } = usePreferences(user.id, countryFromPhone(user.username))
   const currency = preferences.currency
-  const fx = useExchangeRate()
+  const fx = useExchangeRate(currency)
+  const recordCurrency: Currency = currency === 'ZAR' ? 'ZAR' : 'USD'
   const exchangeRate = fx.rate
-  function setCurrency(next: Currency) {
+  function setCurrency(next: string) {
     try { updatePreferences({ ...preferences, currency: next }) }
     catch (problem) { setNotice(problem instanceof Error ? problem.message : 'Could not save display currency.') }
   }
@@ -79,7 +81,7 @@ export default function App({ user, onLogout, onAccount }: { user: User; onLogou
         onLogout={onLogout}
     />
     <main id="main">
-      <div className="workspace-heading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>A little more clarity.</h1></div><label className="currency-control">Display currency<select value={currency} onChange={(event) => setCurrency(event.target.value as Currency)}><option value="ZAR">ZAR · South African rand</option><option value="USD">USD · US dollar</option></select></label></div>
+      <div className="workspace-heading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>A little more clarity.</h1></div><label className="currency-control">Display currency<CurrencySelect value={currency} onChange={setCurrency} /></label></div>
       {loadError && <p className="storage-error" role="alert">{loadError}</p>}
       <p className="notice" role="status">{notice}</p>
       <Tabs id="workspace" label="Workspace sections" options={mainTabs} value={tab} onChange={setTab} />
@@ -107,7 +109,7 @@ export default function App({ user, onLogout, onAccount }: { user: User; onLogou
       <section role="tabpanel" id="workspace-panel-activity" aria-labelledby="workspace-tab-activity" hidden={tab !== 'activity'} tabIndex={0}><p className="form-help">Backend repayments, business contributions and capital returns, plus activity previously saved on this device. Creation and edit history are not yet provided by the APIs.</p>{api.error && <p role="alert">Backend repayment history is unavailable until debts refresh successfully.</p>}{businessApi.error && <p role="alert">Business history may be out of date until businesses refresh successfully.</p>}{(api.loading || businessApi.loading) && <p role="status">Refreshing transaction history…</p>}<RecentActivity activity={activity} currency={currency} rate={exchangeRate} /></section>
       <footer>Personal debts and business records: backend database. Estimated exchange rates: Frankfurter. Preferences and previous local records: this device.</footer>
     </main>
-    {editor?.kind === 'debt' && <DebtEditor debt={editor.debt} currency={currency} direction={direction} onSave={saveDebt} onClose={() => setEditor(null)} />}
+    {editor?.kind === 'debt' && <DebtEditor debt={editor.debt} currency={recordCurrency} direction={direction} onSave={saveDebt} onClose={() => setEditor(null)} />}
     {editor?.kind === 'repay' && <RepaymentEditor debt={editor.debt} onClose={() => setEditor(null)} onSave={async (payment) => {
       try {
         await api.repay(editor.debt.id, payment)
@@ -126,7 +128,7 @@ export default function App({ user, onLogout, onAccount }: { user: User; onLogou
       {!editor.debt.repayments.length && <p>No repayments yet.</p>}
       <p className="form-help">Backend debts can be edited using the card’s Edit or Repayment button. Previous browser debts are read only.</p>
     </Modal>}
-    {editor?.kind === 'business' && <BusinessEditor business={editor.business} currency={currency} onClose={() => setEditor(null)} onSave={async (business) => {
+    {editor?.kind === 'business' && <BusinessEditor business={editor.business} currency={recordCurrency} onClose={() => setEditor(null)} onSave={async (business) => {
       try {
         await businessApi.save(business, Boolean(editor.business))
         setEditor(null)

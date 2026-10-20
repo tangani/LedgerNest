@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { countries, countryFromPhone } from '../../lib/countries'
 import { defaultCurrency } from '../../lib/preferences'
 import { usePreferences } from '../../hooks/usePreferences'
-import type { Currency } from '../../models/ledger'
+import { CurrencySelect } from '../../components/CurrencySelect'
 
 export function PreferencesPanel({ userId, username }: { userId: string; username: string }) {
   const { preferences, update } = usePreferences(userId, countryFromPhone(username))
   const [error, setError] = useState('')
-  function change(country: string, currency: Currency) {
+  function change(country: string, currency: string) {
     try { update({ country, currency }); setError('') }
     catch (problem) { setError(problem instanceof Error ? problem.message : 'Could not save preferences.') }
   }
@@ -20,9 +20,7 @@ export function PreferencesPanel({ userId, username }: { userId: string; usernam
       </select>
     </label>
     <label>Preferred display currency
-      <select value={preferences.currency} onChange={event => change(preferences.country, event.target.value as Currency)}>
-        <option value="USD">USD · US dollar</option><option value="ZAR">ZAR · South African rand</option>
-      </select>
+      <CurrencySelect value={preferences.currency} onChange={currency => change(preferences.country, currency)} />
     </label>
     <p className="form-help">Saved on this device. Changing country suggests a currency; you can choose another. Original record currencies stay the same.</p>
     {error && <p role="alert" className="form-error">{error}</p>}

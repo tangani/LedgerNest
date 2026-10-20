@@ -154,14 +154,14 @@ export function RecoveryPanel({ mode, initial, onClose }: Props) {
               <>
                 <PasswordField
                   label="New password" name="newPassword" autoComplete="new-password"
-                  minLength={15} maxLength={128} describedBy="recovery-password-help"
+                  minLength={8} maxLength={128} describedBy="recovery-password-help"
                 />
                 <PasswordField
                   label="Confirm password" name="confirmPassword"
-                  autoComplete="new-password" minLength={15} maxLength={128}
+                  autoComplete="new-password" minLength={8} maxLength={128}
                 />
                 <p id="recovery-password-help" className="form-help">
-                  Use 15–128 characters and choose a unique password.
+                  Use 8–128 characters and choose a unique password.
                 </p>
               </>
             )}

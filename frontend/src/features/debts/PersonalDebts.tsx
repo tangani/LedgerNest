@@ -1,12 +1,12 @@
 import { ConvertedAmount } from '../../components/ConvertedAmount'
 import { convertedTotal } from '../../lib/currency'
 import { Tabs } from '../../components/Tabs'
-import type { Currency, Debt, Direction, ExchangeRate } from '../../models/ledger'
+import type { Debt, Direction, ExchangeRate } from '../../models/ledger'
 import { balance, repaid } from '../../lib/debts'
 import { money, dateLabel } from '../../lib/formatters'
 const options = [{ value: 'receivable', label: 'Owed to me' }, { value: 'payable', label: 'I owe' }] as const
 export function PersonalDebts({ debts, currency, direction, onDirection, onAdd, onEdit, onRepay, onDetails, disabled, rate, id = 'debt' }: {
-  id?: string; debts: Debt[]; currency: Currency; direction: Direction; onDirection: (value: Direction) => void
+  id?: string; debts: Debt[]; currency: string; direction: Direction; onDirection: (value: Direction) => void
   onAdd: () => void; onEdit: (debt: Debt) => void; onRepay: (debt: Debt) => void; onDetails: (debt: Debt) => void; disabled: boolean; rate?: ExchangeRate
 }) {
   const visible = debts.filter((debt) => debt.direction === direction)

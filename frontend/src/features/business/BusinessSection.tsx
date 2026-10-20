@@ -1,9 +1,9 @@
-import type { Business, Currency, ExchangeRate } from '../../models/ledger'
+import type { Business, ExchangeRate } from '../../models/ledger'
 import { money } from '../../lib/formatters'
 import { convertedTotal } from '../../lib/currency'
 import { ConvertedAmount } from '../../components/ConvertedAmount'
 export function BusinessSection({ businesses, currency, rate, disabled, onAdd, onEdit, onFunds, onReturn, onHistory }: {
-  businesses: Business[]; currency: Currency; rate?: ExchangeRate; disabled: boolean
+  businesses: Business[]; currency: string; rate?: ExchangeRate; disabled: boolean
   onAdd: () => void; onEdit: (business: Business) => void; onFunds: (business: Business) => void; onReturn: (business: Business) => void; onHistory: (business: Business) => void
 }) {
   const contributed = convertedTotal(businesses.map((b) => ({ amount: b.contributed, currency: b.currency })), currency, rate)

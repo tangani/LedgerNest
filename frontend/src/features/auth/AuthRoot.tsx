@@ -44,5 +44,5 @@ export function AuthRoot() {
   if (!user) return <LoginPage onLogin={login} message={message} />
   return <><App key={user.id} user={user} onLogout={() => logout()} onAccount={() => { void openAccount() }} />
     {accountError && <p className="storage-error" role="alert">{accountError}</p>}
-    {accountOpen && <AccountEditor user={user} onUpdate={setUser} onClose={() => setAccountOpen(false)} />}</>
+    {accountOpen && <AccountEditor onDeleted={() => logout("Your account has been permanently deleted.")} user={user} onUpdate={setUser} onClose={() => setAccountOpen(false)} />}</>
 }

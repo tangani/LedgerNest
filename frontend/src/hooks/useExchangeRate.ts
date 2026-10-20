@@ -1,55 +1,51 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { conversionRate, fetchRate, parseObservation, readCachedRate, REFRESH_AFTER } from '../services/frankfurter'
-import type { RateObservation } from '../services/frankfurter'
+import { asExchangeRate, fetchDisplayRates, freshObservation, readDisplayCache, validObservation } from '../services/displayRates'
+import type { DisplayObservation } from '../services/displayRates'
 
-export function useExchangeRate() {
-  const [observation, setObservation] = useState<RateObservation | undefined>(() => readCachedRate())
+export function useExchangeRate(target = 'ZAR') {
+  const [observation, setObservation] = useState<DisplayObservation>(() => readDisplayCache(target))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [cached, setCached] = useState(Boolean(observation))
   const request = useRef<AbortController | null>(null)
   const refresh = useCallback(async (force = false) => {
     if (request.current) return
-    const existing = readCachedRate()
-    if (!force && existing && Date.now() - existing.fetchedAt < REFRESH_AFTER) {
-      setObservation(existing); setCached(true); return
-    }
+    const cached = readDisplayCache(target)
+    if (!force && freshObservation(cached)) { setObservation(cached); setLoading(false); setError(''); return }
     const controller = new AbortController()
     request.current = controller
     const timeout = setTimeout(() => controller.abort(), 12_000)
-    setLoading(true); setError('')
+    setLoading(true); setError(''); setObservation(cached)
     try {
-      const latest = await fetchRate(controller.signal)
-      if (request.current === controller) { setObservation(latest); setCached(false) }
+      const result = await fetchDisplayRates(target, controller.signal)
+      if (request.current === controller) {
+        setObservation(result)
+        if (['USD', 'ZAR'].some(base => base !== target &&
+            (!result.quotes[base as 'USD' | 'ZAR'] || result.quotes[base as 'USD' | 'ZAR']?.cached))) {
+          setError('Some rates could not be refreshed. Cached rates show their dates; missing conversions remain unavailable.')
+        }
+      }
     } catch {
       if (request.current === controller) {
-        setObservation(current => {
-          if (!current) return undefined
-          try { return parseObservation(current, current.fetchedAt) } catch { return undefined }
-        })
-        setCached(true)
-        setError('Rates could not be refreshed. Any available cached rate is shown with its date.')
+        setObservation(validObservation(cached))
+        setError('Rates could not be refreshed. Original amounts remain available.')
       }
     } finally {
       clearTimeout(timeout)
       if (request.current === controller) { request.current = null; setLoading(false) }
     }
-  }, [])
+  }, [target])
   useEffect(() => {
     void refresh()
     const check = () => { void refresh() }
     const interval = setInterval(check, 60 * 60 * 1000)
-    window.addEventListener('focus', check)
-    window.addEventListener('online', check)
+    window.addEventListener('focus', check); window.addEventListener('online', check)
     return () => {
       clearInterval(interval)
       window.removeEventListener('focus', check); window.removeEventListener('online', check)
-      const controller = request.current
-      request.current = null
-      controller?.abort()
+      const controller = request.current; request.current = null; controller?.abort()
     }
   }, [refresh])
-  let usable: RateObservation | undefined
-  try { if (observation) usable = parseObservation(observation, observation.fetchedAt) } catch { /* expired */ }
-  return { rate: usable ? conversionRate(usable) : undefined, observation: usable, loading, error, cached, refresh }
+  // A currency switch must never reuse a previous target's rates, even for one render.
+  const usable = observation.target === target ? validObservation(observation) : { target, quotes: {} }
+  return { rate: asExchangeRate(usable), observation: usable, loading, error, refresh }
 }
