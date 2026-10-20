@@ -73,7 +73,7 @@ class RecoveryService(private val repo: RecoveryRepository,private val users: Us
     fun finish(input:RecoveryFinishInput):RecoveryMessage {
         limit("finish:global",300,60)
         if(input.secret.length !in 1..128) bad()
-        if(input.newPassword!=null && input.newPassword.length !in 15..128) throw HttpStatusException(HttpStatus.BAD_REQUEST,"Use a password of 15–128 characters.")
+        if(input.newPassword!=null && input.newPassword.length !in 8..128) throw HttpStatusException(HttpStatus.BAD_REQUEST,"Use a password of 8–128 characters.")
         val c=repo.attempt(input.id) ?: bad()
         if(c.purpose=="reset" && input.newPassword==null) bad()
         val valid=if(c.channel=="email") MessageDigest.isEqual(digest(input.secret).toByteArray(),c.tokenHash.toByteArray())

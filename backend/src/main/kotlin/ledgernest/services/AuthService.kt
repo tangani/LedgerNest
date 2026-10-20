@@ -28,7 +28,7 @@ class AuthService(private val users: UserRepository, private val passwords: Pass
         if (firstName.length !in 1..100 || surname.length !in 1..100 || (firstName + surname).any { it.isISOControl() }) {
             throw HttpStatusException(HttpStatus.BAD_REQUEST, "Name and surname must contain 1–100 characters each.")
         }
-        if (input.password.length !in 15..128) throw HttpStatusException(HttpStatus.BAD_REQUEST, "Use a password of 15–128 characters.")
+        if (input.password.length !in 8..128) throw HttpStatusException(HttpStatus.BAD_REQUEST, "Use a password of 8–128 characters.")
         val user = StoredUser(UUID.randomUUID(), firstName, surname, login.value, login.type, passwords.hash(input.password))
         try { users.insert(user) } catch (_: DuplicateUsernameException) {
             throw HttpStatusException(HttpStatus.CONFLICT, "This sign-in identifier is unavailable. Try signing in or choose another.")
